@@ -9,19 +9,15 @@ jobs:
   rainix:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        task: [rainix-rs-test, rainix-rs-artifacts]
-        include:
-          # We don't need to do rust static analysis on multiple platforms
-          - os: ubuntu-latest
-            task: rainix-rs-static
-            # Wasm target doesnt need to run on multiple platforms
-          - os: ubuntu-latest
-            task: rainix-wasm-artifacts
-          - os: ubuntu-latest
-            task: rainix-wasm-test
+        task: [
+          rainix-rs-test,
+          rainix-rs-artifacts,
+          rainix-rs-static,
+          rainix-wasm-artifacts,
+          rainix-wasm-test
+        ]
       fail-fast: false
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
