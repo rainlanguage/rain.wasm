@@ -7,7 +7,7 @@ version = "0.0.0"
 homepage = "https://github.com/rainprotocol/rain.wasm"
 
 [dependencies]
-alloy = "0.1.4"
+alloy-primitives = "0.7.7"
 paste = { version = "1.0.15" }
 js-sys = { version = "0.3.77" }
 wasm-bindgen = { version = "0.2.100" }
