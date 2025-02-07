@@ -107,8 +107,8 @@ macro_rules! impl_all_wasm_traits {
     };
 }
 
-/// Implements tsify with the given type declaration as literal, optionally
-/// for the given rust type(struct, enum, type, ...) identifier.
+/// Implements tsify with the given type declaration for the given rust
+/// type(struct, enum, type, ...) identifier.
 /// This is the same as what [tsify::Tsify] "derive" does internally for a
 /// given type but with full customization accessibility, as both are a shortcut
 /// for wasm_bindgen typescript_custom_section and the latter also puts
@@ -134,6 +134,13 @@ macro_rules! impl_custom_tsify {
             }
         }
     };
+}
+
+/// Adds/appends the given string literal to wasm bindgen typescript bindings
+/// The given text can be anything, from typescript comment to type declarations
+/// or any other valid .d.ts content
+#[macro_export]
+macro_rules! add_ts_content {
     ($decl:literal) => {
         $crate::prelude::paste! {
             #[$crate::prelude::wasm_bindgen(typescript_custom_section)]
