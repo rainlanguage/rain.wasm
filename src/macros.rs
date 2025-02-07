@@ -148,3 +148,39 @@ macro_rules! add_ts_content {
         }
     };
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::prelude::*;
+    use std::collections::HashMap;
+    #[cfg(target_family = "wasm")]
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[derive(serde::Deserialize, serde::Serialize, Default)]
+    pub struct A {
+        pub field1: String,
+        #[serde(serialize_with = "bytes_serilializer")]
+        pub field2: Vec<u8>,
+        pub field3: HashMap<String, u64>,
+    }
+
+    // ensures macros on compile time
+    impl_custom_tsify!(
+        A,
+        "export interface A {
+    field1: String;
+    field2: Uint8Array;
+    field3: Map<string, bigint>;
+};"
+    );
+    impl_all_wasm_traits!(A);
+
+    add_ts_content!("export type SomeType = string;");
+
+    #[cfg(target_family = "wasm")]
+    #[wasm_bindgen_test]
+    fn test_macros() {
+        let res = to_value(&A::default());
+        assert!(res.is_ok());
+    }
+}
