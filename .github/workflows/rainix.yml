@@ -28,7 +28,5 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
-      - run: nix develop -c rainix-rs-prelude
-
       - name: Run ${{ matrix.task }}
         run: nix develop -c ${{ matrix.task }}
