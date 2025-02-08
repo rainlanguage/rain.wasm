@@ -149,38 +149,47 @@ macro_rules! add_ts_content {
     };
 }
 
+#[cfg(target_family = "wasm")]
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
-    use std::collections::HashMap;
-    #[cfg(target_family = "wasm")]
+    use js_sys::{JsString, Object};
     use wasm_bindgen_test::wasm_bindgen_test;
+    use std::{collections::HashMap, str::FromStr};
 
     #[derive(serde::Deserialize, serde::Serialize, Default)]
     pub struct A {
         pub field1: String,
         #[serde(serialize_with = "bytes_serilializer")]
         pub field2: Vec<u8>,
+        #[serde(serialize_with = "serialize_hashmap_as_object")]
         pub field3: HashMap<String, u64>,
     }
 
-    // ensures macros on compile time
+    // ensures macros validity at compile time
+    // impl tsify manualy for "A" that needs it
+    // before being able to impl all wasm traits
     impl_custom_tsify!(
         A,
         "export interface A {
-    field1: String;
-    field2: Uint8Array;
-    field3: Map<string, bigint>;
-};"
+            field1: String;
+            field2: Uint8Array;
+            field3: Record<string, bigint>;
+        };"
     );
     impl_all_wasm_traits!(A);
-
     add_ts_content!("export type SomeType = string;");
 
-    #[cfg(target_family = "wasm")]
     #[wasm_bindgen_test]
     fn test_macros() {
-        let res = to_value(&A::default());
-        assert!(res.is_ok());
+        let res = to_value(&A::default()).unwrap();
+
+        // should exist
+        assert!(JsString::from_str("field1").unwrap().js_in(&res));
+        assert!(JsString::from_str("field2").unwrap().js_in(&res));
+        assert!(JsString::from_str("field3").unwrap().js_in(&res));
+
+        // should not exist
+        assert!(!JsString::from_str("field4").unwrap().js_in(&res));
     }
 }
