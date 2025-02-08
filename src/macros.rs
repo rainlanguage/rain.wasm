@@ -2,6 +2,9 @@
 #[macro_export]
 macro_rules! impl_main_wasm_traits {
     ($type_name:path) => {
+        impl $type_name {
+            const TYPE_NAME: &'static str = stringify!($type_name);
+        }
         impl $crate::prelude::WasmDescribe for $type_name {
             #[inline]
             fn describe() {
@@ -13,8 +16,9 @@ macro_rules! impl_main_wasm_traits {
 
             #[inline]
             fn into_abi(self) -> Self::Abi {
-                let mut err = "".to_string();
-                let result = $crate::prelude::Tsify::into_js(&self);
+                let mut err = Self::TYPE_NAME.to_string();
+                err.push(' ');
+                let result = $crate::prelude::to_value(&self);
                 $crate::prelude::UnwrapThrowExt::expect_throw(result.inspect_err(|e| err.push_str(&e.to_string())), &err).into_abi()
             }
         }
@@ -29,8 +33,9 @@ macro_rules! impl_main_wasm_traits {
 
             #[inline]
             unsafe fn from_abi(js: Self::Abi) -> Self {
-                let mut err = "".to_string();
-                let result = <Self as $crate::prelude::Tsify>::from_js(<Self as $crate::prelude::Tsify>::JsType::from_abi(js));
+                let mut err = Self::TYPE_NAME.to_string();
+                err.push(' ');
+                let result = $crate::prelude::from_value(js.into());
                 $crate::prelude::UnwrapThrowExt::expect_throw(result.inspect_err(|e| err.push_str(&e.to_string())), &err)
             }
         }
@@ -81,7 +86,8 @@ macro_rules! impl_complementary_wasm_traits {
         }
         impl From<$type_name> for $crate::prelude::JsValue {
             fn from(value: $type_name) -> Self {
-                let mut err = "".to_string();
+                let mut err = <$type_name>::TYPE_NAME.to_string();
+                err.push(' ');
                 let result = $crate::prelude::to_value(&value);
                 $crate::prelude::UnwrapThrowExt::expect_throw(
                     result.inspect_err(|e| err.push_str(&e.to_string())),
@@ -153,7 +159,7 @@ macro_rules! add_ts_content {
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
-    use js_sys::{JsString, Object};
+    use js_sys::JsString;
     use wasm_bindgen_test::wasm_bindgen_test;
     use std::{collections::HashMap, str::FromStr};
 
@@ -184,7 +190,7 @@ mod tests {
     fn test_macros() {
         let res = to_value(&A::default()).unwrap();
 
-        // should exist
+        // // should exist
         assert!(JsString::from_str("field1").unwrap().js_in(&res));
         assert!(JsString::from_str("field2").unwrap().js_in(&res));
         assert!(JsString::from_str("field3").unwrap().js_in(&res));
