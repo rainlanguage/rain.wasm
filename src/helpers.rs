@@ -27,10 +27,7 @@ impl TryIntoU256<U256, ParseError> for js_sys::BigInt {}
 ///     field: Vec<u8>,
 /// }
 /// ```
-pub fn bytes_serilializer<S: serde::Serializer>(
-    val: &[u8],
-    serializer: S,
-) -> Result<S::Ok, S::Error> {
+pub fn bytes_serilializer<S: Serializer>(val: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
     serializer.serialize_bytes(val)
 }
 

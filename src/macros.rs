@@ -190,7 +190,7 @@ mod tests {
     fn test_macros() {
         let res = to_value(&A::default()).unwrap();
 
-        // // should exist
+        // should exist
         assert!(JsString::from_str("field1").unwrap().js_in(&res));
         assert!(JsString::from_str("field2").unwrap().js_in(&res));
         assert!(JsString::from_str("field3").unwrap().js_in(&res));
