@@ -41,8 +41,8 @@ pub fn bytes_serilializer<S: Serializer>(val: &[u8], serializer: S) -> Result<S:
 /// [Serialize] as well.
 ///
 /// This serializer fn idealy is meant to be used with
-/// [serde_wasm_bindgen::Serializer] as wasm bindgen traits
-/// in [crate::macros] are implemented for its parent type.
+/// [serde_wasm_bindgen::Serializer] with wasm bindgen traits
+/// in [crate::macros] implemented for its parent type.
 ///
 /// Example:
 /// ```ignore
@@ -84,8 +84,8 @@ where
 /// [Serialize] as well.
 ///
 /// This serializer fn idealy is meant to be used with
-/// [serde_wasm_bindgen::Serializer] as wasm bindgen traits
-/// in [crate::macros] are implemented for its parent type.
+/// [serde_wasm_bindgen::Serializer] with wasm bindgen traits
+/// in [crate::macros] implemented for its parent type.
 ///
 /// Example:
 /// ```ignore
