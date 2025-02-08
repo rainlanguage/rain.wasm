@@ -39,19 +39,19 @@ pub fn bytes_serilializer<S: serde::Serializer>(
 /// Example:
 /// ```ignore
 /// #[derive(serde::Serialize, serde::Deserialize)]
-/// struct A {
-///     #[serde(serialize_with = "serialize_map_as_object")]
-///     field: HashMap<String, String>,
+/// struct A<T: serde::Serialize> {
+///     #[serde(serialize_with = "serialize_hashmap_as_object")]
+///     field: HashMap<String, T>,
 /// }
 /// ```
-pub fn serialize_map_as_object<S: Serializer, T: Serialize>(
-    value: &HashMap<String, T>,
+pub fn serialize_hashmap_as_object<S: Serializer, T: Serialize>(
+    val: &HashMap<String, T>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
-    let mut ser = serializer.serialize_struct("HashMap", value.len())?;
-    for (k, v) in value {
+    let mut ser = serializer.serialize_struct("HashMap", val.len())?;
+    for (k, value) in val {
         let key: &'static str = Box::leak(k.clone().into_boxed_str());
-        ser.serialize_field(key, v)?;
+        ser.serialize_field(key, value)?;
     }
     ser.end()
 }
@@ -61,23 +61,24 @@ pub fn serialize_map_as_object<S: Serializer, T: Serialize>(
 /// Example:
 /// ```ignore
 /// #[derive(serde::Serialize, serde::Deserialize)]
-/// struct A {
+/// struct A<T: serde::Serialize> {
 ///     #[serde(serialize_with = "serialize_btreemap_as_object")]
-///     field: BTreeMap<String, String>,
+///     field: BTreeMap<String, T>,
 /// }
 /// ```
 pub fn serialize_btreemap_as_object<S: Serializer, T: Serialize>(
-    value: &BTreeMap<String, T>,
+    val: &BTreeMap<String, T>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
-    let mut ser = serializer.serialize_struct("BTreeMap", value.len())?;
-    for (k, v) in value {
+    let mut ser = serializer.serialize_struct("BTreeMap", val.len())?;
+    for (k, value) in val {
         let key: &'static str = Box::leak(k.clone().into_boxed_str());
-        ser.serialize_field(key, v)?;
+        ser.serialize_field(key, value)?;
     }
     ser.end()
 }
 
+#[cfg(target_family = "wasm")]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -85,7 +86,6 @@ mod tests {
     use wasm_bindgen_test::wasm_bindgen_test;
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
 
-    #[cfg(target_family = "wasm")]
     #[wasm_bindgen_test]
     fn test_js_bigint_to_u256() {
         let bigint = js_sys::BigInt::from_str("12").unwrap();
@@ -94,7 +94,6 @@ mod tests {
         assert_eq!(result, expected);
     }
 
-    #[test]
     #[wasm_bindgen_test]
     fn test_byte_serializer() {
         #[derive(serde::Serialize, serde::Deserialize, PartialEq, Debug)]
@@ -141,12 +140,11 @@ mod tests {
         );
     }
 
-    #[test]
     #[wasm_bindgen_test]
     fn test_map_serializer() {
         #[derive(serde::Serialize, serde::Deserialize, PartialEq, Debug)]
         struct Test {
-            #[serde(serialize_with = "serialize_map_as_object")]
+            #[serde(serialize_with = "serialize_hashmap_as_object")]
             field: HashMap<String, String>,
         }
 
@@ -195,18 +193,17 @@ mod tests {
         );
     }
 
-    #[test]
     #[wasm_bindgen_test]
     fn test_bmap_serializer() {
         #[derive(serde::Serialize, serde::Deserialize, PartialEq, Debug)]
         struct Test {
             #[serde(serialize_with = "serialize_btreemap_as_object")]
-            field: BTreeMap<String, String>,
+            field: BTreeMap<String, u8>,
         }
 
         let mut bmap = BTreeMap::new();
-        bmap.insert("key1".to_string(), "some value".to_string());
-        bmap.insert("key2".to_string(), "some other value".to_string());
+        bmap.insert("key1".to_string(), 8);
+        bmap.insert("key2".to_string(), 9);
         let test = Test { field: bmap };
 
         assert_ser_tokens(
@@ -222,9 +219,9 @@ mod tests {
                     len: 2,
                 },
                 Token::Str("key1"),
-                Token::Str("some value"),
+                Token::U8(8),
                 Token::Str("key2"),
-                Token::Str("some other value"),
+                Token::U8(9),
                 Token::StructEnd,
                 Token::StructEnd,
             ],
@@ -240,9 +237,9 @@ mod tests {
                 Token::Str("field"),
                 Token::Map { len: Some(2) },
                 Token::Str("key1"),
-                Token::Str("some value"),
+                Token::U8(8),
                 Token::Str("key2"),
-                Token::Str("some other value"),
+                Token::U8(9),
                 Token::MapEnd,
                 Token::StructEnd,
             ],
