@@ -32,44 +32,86 @@ pub fn bytes_serilializer<S: Serializer>(val: &[u8], serializer: S) -> Result<S:
 }
 
 /// Serializer fn that serializes HashMap as k/v object.
-/// in js it would be plain js object and not js Map
+/// in js it would be plain js object and not js Map.
+///
+/// The [HashMap]'s keys should either be String or impl
+/// [ToString] trait so that they can be converted to a
+/// valid string key when serialized.
+/// The [HashMap]'s entry values should themselves impl
+/// [Serialize] as well.
+///
+/// This serializer fn idealy is meant to be used with
+/// [serde_wasm_bindgen::Serializer] as wasm bindgen traits
+/// in [crate::macros] are implemented for its parent type.
+///
 /// Example:
 /// ```ignore
 /// #[derive(serde::Serialize, serde::Deserialize)]
-/// struct A<T: serde::Serialize> {
-///     #[serde(serialize_with = "serialize_hashmap_as_object")]
-///     field: HashMap<String, T>,
+/// struct A {
+///     #[cfg_attr(target_family = "wasm", serde(serialize_with = "serialize_hashmap_as_object"))]
+///     field: HashMap<String, u8>,
 /// }
+/// #[cfg(target_family = "wasm")]
+/// impl_all_wasm_traits!(A);
 /// ```
-pub fn serialize_hashmap_as_object<S: Serializer, T: Serialize>(
-    val: &HashMap<String, T>,
+pub fn serialize_hashmap_as_object<K, V, S>(
+    val: &HashMap<K, V>,
     serializer: S,
-) -> Result<S::Ok, S::Error> {
+) -> Result<S::Ok, S::Error>
+where
+    K: ToString,
+    V: Serialize,
+    S: Serializer,
+{
     let mut ser = serializer.serialize_struct("HashMap", val.len())?;
-    for (k, value) in val {
-        let key: &'static str = Box::leak(k.clone().into_boxed_str());
+    for (key, value) in val {
+        // static str is not actually needed since we are dealing
+        // with a hashmap which its keys can change at runtime
+        // so we can safely deref the &str for this purpose
+        let key = unsafe { &*(key.to_string().as_str() as *const str) };
         ser.serialize_field(key, value)?;
     }
     ser.end()
 }
 
 /// Serializer fn that serializes BTreeMap as k/v object.
-/// in js it would be plain js object and not js Map
+/// in js it would be plain js object and not js Map.
+///
+/// The [BTreeMap]'s keys should either be String or impl
+/// [ToString] trait so that they can be converted to a
+/// valid string key when serialized.
+/// The [BTreeMap]'s entry values should themselves impl
+/// [Serialize] as well.
+///
+/// This serializer fn idealy is meant to be used with
+/// [serde_wasm_bindgen::Serializer] as wasm bindgen traits
+/// in [crate::macros] are implemented for its parent type.
+///
 /// Example:
 /// ```ignore
 /// #[derive(serde::Serialize, serde::Deserialize)]
-/// struct A<T: serde::Serialize> {
-///     #[serde(serialize_with = "serialize_btreemap_as_object")]
-///     field: BTreeMap<String, T>,
+/// struct A {
+///     #[cfg_attr(target_family = "wasm", serde(serialize_with = "serialize_btreemap_as_object"))]
+///     field: BTreeMap<String, u8>,
 /// }
+/// #[cfg(target_family = "wasm")]
+/// impl_all_wasm_traits!(A);
 /// ```
-pub fn serialize_btreemap_as_object<S: Serializer, T: Serialize>(
-    val: &BTreeMap<String, T>,
+pub fn serialize_btreemap_as_object<K, V, S>(
+    val: &BTreeMap<K, V>,
     serializer: S,
-) -> Result<S::Ok, S::Error> {
+) -> Result<S::Ok, S::Error>
+where
+    K: ToString,
+    V: Serialize,
+    S: Serializer,
+{
     let mut ser = serializer.serialize_struct("BTreeMap", val.len())?;
-    for (k, value) in val {
-        let key: &'static str = Box::leak(k.clone().into_boxed_str());
+    for (key, value) in val {
+        // static str is not actually needed since we are dealing
+        // with a btreemap which its keys can change at runtime
+        // so we can safely deref the &str for this purpose
+        let key = unsafe { &*(key.to_string().as_str() as *const str) };
         ser.serialize_field(key, value)?;
     }
     ser.end()
