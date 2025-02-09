@@ -201,7 +201,9 @@ macro_rules! impl_all_wasm_traits {
 /// }
 /// impl_custom_tsify!(
 ///     SomeType,
-///     "export interface A {
+///     // this will become the typescript 
+///     // interface bindings for SomeType
+///     "export interface SomeType {
 ///         field: string;
 ///         otherField: number
 ///     };"
