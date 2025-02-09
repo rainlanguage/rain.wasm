@@ -1,4 +1,29 @@
-/// A macro that implements main wasm traits for the given type
+/// A macro that implements main wasm traits for the given type.
+/// These traits are the necessary ones to be able to send/receive
+/// the given type through wasm bindgen bounry.
+/// The type needs to implement [serde::Serialize], [serde::Deserialize]
+/// and [tsify::Tsify].
+///
+/// Example:
+/// ```ignore
+/// #[derive(Serialize, Deserialize, Tsify)]
+/// #[serde(rename_all = "camelCase")]
+/// pub struct A {
+///     pub field: String,
+///     pub other_field: u8,
+/// }
+/// impl_main_wasm_traits!(A);
+///
+/// #[wasm_bindgen]
+/// pub fn some_fn(arg: A) -> String {
+///     // body
+/// }
+///
+/// #[wasm_bindgen]
+/// pub fn some_other_fn(arg: String) -> Option<A> {
+///     // body
+/// }
+/// ```
 #[macro_export]
 macro_rules! impl_main_wasm_traits {
     ($type_name:path) => {
@@ -48,7 +73,29 @@ macro_rules! impl_main_wasm_traits {
     };
 }
 
-/// Implements complementary wasm traits for the given type
+/// Implements complementary wasm traits for the given type.
+/// Needs [impl_main_wasm_traits] to be implemented first.
+/// It allows a type to be used on async functions normally or
+/// as ref or as Vec<> etc.
+/// The type needs to implement [serde::Serialize], [serde::Deserialize]
+/// and [tsify::Tsify].
+///
+/// Example:
+/// ```ignore
+/// #[derive(Serialize, Deserialize, Tsify)]
+/// #[serde(rename_all = "camelCase")]
+/// pub struct A {
+///     pub field: String,
+///     pub other_field: u8,
+/// }
+/// impl_main_wasm_traits!(A);
+/// impl_complementary_wasm_traits!(A);
+///
+/// #[wasm_bindgen]
+/// pub async fn some_fn(arg: &A) -> Result<String, Error> {
+///     // body
+/// }
+/// ```
 #[macro_export]
 macro_rules! impl_complementary_wasm_traits {
     ($type_name:path) => {
@@ -104,7 +151,26 @@ macro_rules! impl_complementary_wasm_traits {
     };
 }
 
-/// Implement all wasm traits for the given type
+/// Implement all wasm traits for the given type.
+/// that is [impl_main_wasm_traits] and [impl_complementary_wasm_traits].
+/// The type needs to implement [serde::Serialize], [serde::Deserialize]
+/// and [tsify::Tsify].
+///
+/// Example:
+/// ```ignore
+/// #[derive(Serialize, Deserialize, Tsify)]
+/// #[serde(rename_all = "camelCase")]
+/// pub struct A {
+///     pub field: String,
+///     pub other_field: u8,
+/// }
+/// impl_all_wasm_traits!(A);
+///
+/// #[wasm_bindgen]
+/// pub fn some_fn(arg: Vec<A>) -> String {
+///     // body
+/// }
+/// ```
 #[macro_export]
 macro_rules! impl_all_wasm_traits {
     ($type_name:path) => {
@@ -113,14 +179,43 @@ macro_rules! impl_all_wasm_traits {
     };
 }
 
-/// Implements tsify with the given type declaration for the given rust
+/// Implements [tsify::Tsify] with the given type declaration for the given rust
 /// type(struct, enum, type, ...) identifier.
-/// This is the same as what [tsify::Tsify] "derive" does internally for a
+/// This is the same as what [tsify::Tsify] derive macro does internally for a
 /// given type but with full customization accessibility, as both are a shortcut
-/// for wasm_bindgen typescript_custom_section and the latter also puts
-/// representative js type of the given type on the current scope identified by
-/// prepending "Js" to the orginial type identifier, meaning it would be
-/// accessible by for example: "JsSomeType" when original type is "SomeType".
+/// for [wasm_bindgen] `typescript_custom_section` attr.
+/// Additionally, this macro also puts representative [wasm_bindgen::JsValue] of
+/// the given type on the current scope identified by prepending "Js" to the
+/// orginial type identifier, meaning it would be accessible by for example:
+/// `JsSomeType` when original type is `SomeType`.
+/// This allows to manually deserialize the [wasm_bindgen::JsValue] from
+/// js side into the rust type, for example with custom deserializers etc.
+///
+/// Example:
+/// ```ignore
+/// #[derive(Serialize, Deserialize)]
+/// #[serde(rename_all = "camelCase")]
+/// pub struct SomeType {
+///     pub field: String,
+///     pub other_field: u8,
+/// }
+/// impl_custom_tsify!(
+///     SomeType,
+///     "export interface A {
+///         field: string;
+///         otherField: number
+///     };"
+/// );
+///
+/// #[wasm_bindgen]
+/// pub fn some_fn(arg: JsSomeType) -> String {
+///     // deserialize the arg which is a wrapped `JsValue` into rust `SomeType`
+///     // using serde_wasm_bindgen, optionally with its available deserialize options
+///     let val = serde_wasm_bindgen::from_value::<SomeType>(arg.obj.clone()).unwrap_throw();
+///
+///     // rest of body
+/// }
+/// ```
 #[macro_export]
 macro_rules! impl_custom_tsify {
     ($type_name:ident, $decl:literal) => {
@@ -144,7 +239,16 @@ macro_rules! impl_custom_tsify {
 
 /// Adds/appends the given string literal to wasm bindgen typescript bindings
 /// The given text can be anything, from typescript comment to type declarations
-/// or any other valid .d.ts content
+/// or any other valid .d.ts content.
+///
+/// Example:
+/// ```ignore
+/// // add some custom type to .d.ts bindings output
+/// add_ts_content!("export type SomeType = { field: string; otherField: number };");
+///
+/// // add some comment to .d.ts bindings output
+/// add_ts_content!("// this is some comment");
+/// ```
 #[macro_export]
 macro_rules! add_ts_content {
     ($decl:literal) => {
