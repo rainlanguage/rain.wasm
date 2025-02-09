@@ -6,8 +6,11 @@ license = "LicenseRef-DCL-1.0"
 version = "0.0.0"
 homepage = "https://github.com/rainprotocol/rain.wasm"
 
+[features]
+default = ["alloy"]
+alloy = ["dep:alloy-primitives"]
+
 [dependencies]
-alloy-primitives = "0.7.7"
 paste = { version = "1.0.15" }
 js-sys = { version = "0.3.77" }
 wasm-bindgen = { version = "0.2.100" }
@@ -15,6 +18,8 @@ serde-wasm-bindgen = { version = "0.6.5" }
 wasm-bindgen-futures = { version = "0.4.50" }
 serde = { version = "1.0.217", features = ["derive", "rc"] }
 tsify = { version = "0.4.5", default-features = false, features = ["js", "wasm-bindgen"] }
+
+alloy-primitives = { version = "0.7.7", optional = true }
 
 [dev-dependencies]
 serde_test = "1.0.177"

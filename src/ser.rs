@@ -1,22 +1,5 @@
-use alloy_primitives::{U256, ruint::ParseError};
+use std::collections::{BTreeMap, HashMap};
 use serde::{ser::SerializeStruct, Serialize, Serializer};
-use std::{
-    collections::{BTreeMap, HashMap},
-    error::Error,
-    fmt::Display,
-    str::FromStr,
-};
-
-/// A trait for converting a given type to U256
-pub trait TryIntoU256<T: FromStr<Err = E>, E: Error>
-where
-    Self: Display,
-{
-    fn try_into_u256(&self) -> Result<T, E> {
-        T::from_str(&format!("{}", &self))
-    }
-}
-impl TryIntoU256<U256, ParseError> for js_sys::BigInt {}
 
 /// Serializer fn for serializing Vec\<u8\> as bytes (Uint8Array for js)
 /// Example:
@@ -124,14 +107,6 @@ mod tests {
     use std::collections::HashMap;
     use wasm_bindgen_test::wasm_bindgen_test;
     use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
-
-    #[wasm_bindgen_test]
-    fn test_js_bigint_to_u256() {
-        let bigint = js_sys::BigInt::from_str("12").unwrap();
-        let result = bigint.try_into_u256().unwrap();
-        let expected = U256::from(12);
-        assert_eq!(result, expected);
-    }
 
     #[wasm_bindgen_test]
     fn test_byte_serializer() {
