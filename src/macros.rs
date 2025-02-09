@@ -210,12 +210,17 @@ macro_rules! impl_all_wasm_traits {
 /// );
 ///
 /// #[wasm_bindgen]
-/// pub fn some_fn(arg: JsSomeType) -> String {
-///     // deserialize the arg which is a wrapped `JsValue` into rust `SomeType`
-///     // using serde_wasm_bindgen, optionally with its available deserialize options
-///     let val = serde_wasm_bindgen::from_value::<SomeType>(arg.obj.clone()).unwrap_throw();
+/// pub fn some_fn(arg: JsSomeType) -> JsSomeType {
+///     // deserialize the arg which is a wrapped `JsValue`
+///     // into rust `SomeType` using serde_wasm_bindgen
+///     let val = serde_wasm_bindgen::from_value::<SomeType>(arg.obj).unwrap_throw();
 ///
-///     // rest of body
+///     // body
+///
+///     // serialize to JsValue optionally with serializer available
+///     // options and wrap it in JsSomeType for return
+///     let ser = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
+///     JsSomeType { obj: val.serialize(ser).unwrap_throw() }
 /// }
 /// ```
 #[macro_export]
