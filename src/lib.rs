@@ -1,13 +1,7 @@
 //! Provides utilities, helpers and macros to easily build and customize [wasm_bindgen] bindings.
-//!
-//! ## Features
-//! - `alloy`: enabled by default, adds [mod@alloy_primitives] dependency and provides
-//!   a trait implementation for converting [alloy_primitives::U256] to [js_sys::BigInt]
 
 mod ser;
 pub mod macros;
-#[cfg(feature = "alloy")]
-pub mod alloy;
 
 pub use ser::*;
 
