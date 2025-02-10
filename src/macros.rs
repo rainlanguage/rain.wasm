@@ -164,7 +164,7 @@ macro_rules! impl_complementary_wasm_traits {
 ///     pub field: String,
 ///     pub other_field: u8,
 /// }
-/// impl_all_wasm_traits!(A);
+/// impl_wasm_traits!(A);
 ///
 /// #[wasm_bindgen]
 /// pub fn some_fn(arg: Vec<A>) -> String {
@@ -172,7 +172,7 @@ macro_rules! impl_complementary_wasm_traits {
 /// }
 /// ```
 #[macro_export]
-macro_rules! impl_all_wasm_traits {
+macro_rules! impl_wasm_traits {
     ($type_name:path) => {
         $crate::impl_main_wasm_traits!($type_name);
         $crate::impl_complementary_wasm_traits!($type_name);
@@ -303,7 +303,7 @@ mod tests {
             field3: Record<string, bigint>;
         };"
     );
-    impl_all_wasm_traits!(A);
+    impl_wasm_traits!(A);
     add_ts_content!("export type SomeType = string;");
 
     #[wasm_bindgen_test]
