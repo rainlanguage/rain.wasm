@@ -1,8 +1,8 @@
 /// A macro that implements main wasm traits for the given type.
 /// These traits are the necessary ones to be able to send/receive
-/// the given type through wasm bindgen bounry.
+/// the given type through wasm bindgen boundry.
 /// The type needs to have [serde::Serialize], [serde::Deserialize]
-/// and [tsify::Tsify] implemented.
+/// and [tsify::Tsify] traits implemented.
 ///
 /// Example:
 /// ```ignore
@@ -78,7 +78,7 @@ macro_rules! impl_main_wasm_traits {
 /// It allows a type to be used on async functions normally or
 /// as ref or as Vec<> etc.
 /// The type needs to have [serde::Serialize], [serde::Deserialize]
-/// and [tsify::Tsify] implemented.
+/// and [tsify::Tsify] traits implemented.
 ///
 /// Example:
 /// ```ignore
@@ -154,7 +154,7 @@ macro_rules! impl_complementary_wasm_traits {
 /// Implement all wasm traits for the given type.
 /// that is [impl_main_wasm_traits] and [impl_complementary_wasm_traits].
 /// The type needs to have [serde::Serialize], [serde::Deserialize]
-/// and [tsify::Tsify] implemented.
+/// and [tsify::Tsify] traits implemented.
 ///
 /// Example:
 /// ```ignore
