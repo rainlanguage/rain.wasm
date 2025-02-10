@@ -8,12 +8,12 @@ pub use ser::*;
 // prelude exports
 pub mod prelude {
     pub use paste;
-    pub use tsify;
     pub use js_sys;
+    pub use tsify_next;
     pub use wasm_bindgen;
     pub use serde_wasm_bindgen;
     pub use wasm_bindgen_futures;
-    pub use tsify::Tsify;
+    pub use tsify_next::Tsify;
     pub use wasm_bindgen::prelude::*;
     pub use serde_wasm_bindgen::{to_value as to_js_value, from_value as from_js_value};
 }

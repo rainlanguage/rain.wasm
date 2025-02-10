@@ -2,7 +2,7 @@
 /// These traits are the necessary ones to be able to send/receive
 /// the given type through wasm bindgen boundry.
 /// The type needs to have [serde::Serialize], [serde::Deserialize]
-/// and [tsify::Tsify] traits implemented.
+/// and [tsify_next::Tsify] traits implemented.
 ///
 /// Example:
 /// ```ignore
@@ -78,7 +78,7 @@ macro_rules! impl_main_wasm_traits {
 /// It allows a type to be used on async functions normally or
 /// as ref or as Vec<> etc.
 /// The type needs to have [serde::Serialize], [serde::Deserialize]
-/// and [tsify::Tsify] traits implemented.
+/// and [tsify_next::Tsify] traits implemented.
 ///
 /// Example:
 /// ```ignore
@@ -154,7 +154,7 @@ macro_rules! impl_complementary_wasm_traits {
 /// Implement all wasm traits for the given type.
 /// that is [impl_main_wasm_traits] and [impl_complementary_wasm_traits].
 /// The type needs to have [serde::Serialize], [serde::Deserialize]
-/// and [tsify::Tsify] traits implemented.
+/// and [tsify_next::Tsify] traits implemented.
 ///
 /// Example:
 /// ```ignore
@@ -179,21 +179,21 @@ macro_rules! impl_wasm_traits {
     };
 }
 
-/// Implements [tsify::Tsify] with the given type declaration for the given rust
+/// Implements [tsify_next::Tsify] with the given type declaration for the given rust
 /// type (structs and enums) identifier.
 ///
-/// This is the same as what [tsify::Tsify] derive macro does internally for a
+/// This is the same as what [tsify_next::Tsify] derive macro does internally for a
 /// given type but with full customization capability, as both are a sugar
 /// for [wasm_bindgen] `typescript_custom_section` attr plus `extern C` block
 /// defining a wrapped [wasm_bindgen::JsValue] for the given type.
-/// Therefore, this macro (unlike tsify derive macro) puts representative
+/// Therefore, this macro (unlike tsify_next derive macro) puts representative
 /// [wasm_bindgen::JsValue] of the given type on the current scope identified
 /// by prepending "Js" to the orginial type identifier, meaning it would be
 /// accessible by for example:
 /// `JsSomeType` when original type is `SomeType`.
 ///
 /// This is very usefull for cases where a rust type is not defined in current
-/// module (like autogen types) and [tsify::Tsify] trait cannot be implemented
+/// module (like autogen types) and [tsify_next::Tsify] trait cannot be implemented
 /// for as a result, so this will implement `Tsify` trait for the given type and
 /// also allows to manually serialize/deserialize the [wasm_bindgen::JsValue]
 /// to/from js side from/to the rust type, for example with custom serializers
@@ -293,7 +293,7 @@ mod tests {
     }
 
     // ensures macros validity at compile time
-    // impl tsify manualy for "A" that needs it
+    // impl tsify_next manualy for "A" that needs it
     // before being able to impl all wasm traits
     impl_custom_tsify!(
         A,
