@@ -1,5 +1,8 @@
 name: Manual Release
-on: [push]
+on: 
+  push:
+    branches:
+      - main
 
 jobs:
   release:
@@ -32,9 +35,7 @@ jobs:
 
       # Commit changes and tag
       - name: Commit And Tag
-        run: |
-          git commit -m "Release ${{ env.NEW_VERSION }}"
-          git tag ${{ env.NEW_VERSION }}
+        run: git tag ${{ env.NEW_VERSION }}
 
       # Push the commit to remote
       - name: Push Changes To Remote
