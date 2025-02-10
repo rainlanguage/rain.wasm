@@ -182,14 +182,17 @@ macro_rules! impl_all_wasm_traits {
 /// Implements [tsify::Tsify] with the given type declaration for the given rust
 /// type(struct, enum, type, ...) identifier.
 /// This is the same as what [tsify::Tsify] derive macro does internally for a
-/// given type but with full customization accessibility, as both are a shortcut
-/// for [wasm_bindgen] `typescript_custom_section` attr.
-/// Additionally, this macro also puts representative [wasm_bindgen::JsValue] of
-/// the given type on the current scope identified by prepending "Js" to the
-/// orginial type identifier, meaning it would be accessible by for example:
+/// given type but with full customization capability, as both are a sugar
+/// for [wasm_bindgen] `typescript_custom_section` attr plus `extern C` block
+/// defining a wrapped [wasm_bindgen::JsValue] for the given type.
+/// Therefore, this macro (unlike tsify derive macro) puts representative
+/// [wasm_bindgen::JsValue] of the given type on the current scope identified
+/// by prepending "Js" to the orginial type identifier, meaning it would be
+/// accessible by for example:
 /// `JsSomeType` when original type is `SomeType`.
-/// This allows to manually deserialize the [wasm_bindgen::JsValue] from
-/// js side into the rust type, for example with custom deserializers etc.
+/// This allows to manually serialize/deserialize the [wasm_bindgen::JsValue]
+/// to/from js side from/to the rust type, for example with custom serializers
+/// and deserializers.
 ///
 /// Example:
 /// ```ignore
@@ -244,8 +247,9 @@ macro_rules! impl_custom_tsify {
     };
 }
 
-/// Adds/appends the given string literal to wasm bindgen typescript bindings
-/// The given text can be anything, from typescript comment to type declarations
+/// Adds/appends the given string literal to wasm bindgen typescript bindings.
+/// This is just a sugar for [wasm_bindgen] `typescript_custom_section`, so
+/// the given text can be anything, from typescript comment to type declarations
 /// or any other valid .d.ts content.
 ///
 /// Example:
