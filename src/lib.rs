@@ -5,14 +5,6 @@ pub mod macros;
 
 pub use ser::*;
 
-// re-export wasm deps for version control on target
-pub use paste;
-pub use tsify;
-pub use js_sys;
-pub use wasm_bindgen;
-pub use serde_wasm_bindgen;
-pub use wasm_bindgen_futures;
-
 // prelude exports
 pub mod prelude {
     pub use paste;
