@@ -6,6 +6,7 @@ pub mod macros;
 pub use ser::*;
 
 // re-export wasm deps for version control on target
+pub use paste;
 pub use tsify;
 pub use js_sys;
 pub use wasm_bindgen;
@@ -14,15 +15,13 @@ pub use wasm_bindgen_futures;
 
 // prelude exports
 pub mod prelude {
+    pub use paste;
+    pub use tsify;
     pub use js_sys;
-    pub use paste::paste;
-    pub use crate::ser::*;
-    pub use serde_wasm_bindgen::{from_value, to_value};
+    pub use wasm_bindgen;
+    pub use serde_wasm_bindgen;
+    pub use wasm_bindgen_futures;
     pub use tsify::Tsify;
-    pub use wasm_bindgen::{
-        convert::*,
-        prelude::*,
-        JsCast, JsValue, UnwrapThrowExt,
-        describe::{inform, WasmDescribe, WasmDescribeVector, VECTOR},
-    };
+    pub use wasm_bindgen::prelude::*;
+    pub use serde_wasm_bindgen::{to_value as to_js_value, from_value as from_js_value};
 }
