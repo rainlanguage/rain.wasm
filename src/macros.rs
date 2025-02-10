@@ -41,7 +41,8 @@ macro_rules! impl_main_wasm_traits {
 
             #[inline]
             fn into_abi(self) -> Self::Abi {
-                let mut err = Self::TYPE_NAME.to_string();
+                let mut err = String::new();
+                err.push_str(Self::TYPE_NAME);
                 err.push_str(": ");
                 let result = $crate::prelude::to_js_value(&self);
                 $crate::prelude::UnwrapThrowExt::expect_throw(result.inspect_err(|e| err.push_str(&e.to_string())), &err).into_abi()
@@ -58,7 +59,8 @@ macro_rules! impl_main_wasm_traits {
 
             #[inline]
             unsafe fn from_abi(js: Self::Abi) -> Self {
-                let mut err = Self::TYPE_NAME.to_string();
+                let mut err = String::new();
+                err.push_str(Self::TYPE_NAME);
                 err.push_str(": ");
                 let result = $crate::prelude::from_js_value(js.into());
                 $crate::prelude::UnwrapThrowExt::expect_throw(result.inspect_err(|e| err.push_str(&e.to_string())), &err)
@@ -133,7 +135,8 @@ macro_rules! impl_complementary_wasm_traits {
         }
         impl From<$type_name> for $crate::prelude::wasm_bindgen::JsValue {
             fn from(value: $type_name) -> Self {
-                let mut err = <$type_name>::TYPE_NAME.to_string();
+                let mut err = String::new();
+                err.push_str(<$type_name>::TYPE_NAME);
                 err.push_str(": ");
                 let result = $crate::prelude::to_js_value(&value);
                 $crate::prelude::UnwrapThrowExt::expect_throw(
