@@ -181,6 +181,7 @@ macro_rules! impl_all_wasm_traits {
 
 /// Implements [tsify::Tsify] with the given type declaration for the given rust
 /// type(struct, enum, type, ...) identifier.
+///
 /// This is the same as what [tsify::Tsify] derive macro does internally for a
 /// given type but with full customization capability, as both are a sugar
 /// for [wasm_bindgen] `typescript_custom_section` attr plus `extern C` block
@@ -190,7 +191,11 @@ macro_rules! impl_all_wasm_traits {
 /// by prepending "Js" to the orginial type identifier, meaning it would be
 /// accessible by for example:
 /// `JsSomeType` when original type is `SomeType`.
-/// This allows to manually serialize/deserialize the [wasm_bindgen::JsValue]
+///
+/// This is very usefull for cases where a rust type is not defined in current
+/// module (like autogen types) and [tsify::Tsify] trait cannot be implemented
+/// for as a result, so this will implement `Tsify` trait for the given type and
+/// also allows to manually serialize/deserialize the [wasm_bindgen::JsValue]
 /// to/from js side from/to the rust type, for example with custom serializers
 /// and deserializers.
 ///
