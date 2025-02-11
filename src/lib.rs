@@ -6,7 +6,7 @@
 //!
 //! Example:
 //! ```ignore
-//! use wasm_bindgen_utils::prelude::*;
+//! use wasm_bindgen_utils::{prelude::*, impl_wasm_traits, impl_custom_tsify, add_ts_content};
 //!
 //! #[derive(Serialize, Deserialize)]
 //! #[serde(rename_all = "camelCase")]

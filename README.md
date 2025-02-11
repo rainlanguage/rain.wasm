@@ -4,7 +4,7 @@ Provides utilities, helpers and macros to easily build and customize `wasm_bindg
 
 Example:
 ```rust
-use wasm_bindgen_utils::prelude::*;
+use wasm_bindgen_utils::{prelude::*, impl_wasm_traits, impl_custom_tsify, add_ts_content};
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
