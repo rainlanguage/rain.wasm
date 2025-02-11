@@ -2,6 +2,7 @@
 //! such as [impl_wasm_traits] macro that will implement wasm traits for a give type and
 //! [serialize_hashmap_as_object] serializer function to serialize a hashmap as object used with
 //! serde `serialize_with` attribute.
+//! For more details please read the doumentation of the items of this lib.
 //!
 //! Example:
 //! ```ignore
@@ -17,7 +18,7 @@
 //! // impl wasm traits for SomeType
 //! impl_wasm_traits!(SomeType);
 //!
-//! // impl tsify manually for SomeType
+//! // impl tsify manually for SomeType (as an alternative to Tsify derive macro)
 //! // the given string literal will become the typescript interface bindings for SomeType
 //! impl_custom_tsify!(
 //!     SomeType,
@@ -26,6 +27,9 @@
 //!         otherField: Record<string, number>;
 //!     }"
 //! );
+//!
+//! // appends a custom section to the .d.ts generated bindings
+//! add_ts_content!("import { Something } from 'some-js-lib'")
 //!
 //! // now someType can be used on functions and methods natively
 //! #[wasm_bindgen]

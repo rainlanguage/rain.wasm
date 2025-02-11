@@ -6,11 +6,11 @@ use serde::{ser::SerializeStruct, Serialize, Serializer};
 /// ```ignore
 /// #[derive(serde::Serialize, serde::Deserialize)]
 /// struct A {
-///     #[serde(serialize_with = "bytes_serilializer")]
+///     #[serde(serialize_with = "serilialize_as_bytes")]
 ///     field: Vec<u8>,
 /// }
 /// ```
-pub fn bytes_serilializer<S: Serializer>(val: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
+pub fn serilialize_as_bytes<S: Serializer>(val: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
     serializer.serialize_bytes(val)
 }
 
@@ -23,19 +23,36 @@ pub fn bytes_serilializer<S: Serializer>(val: &[u8], serializer: S) -> Result<S:
 /// The [HashMap]'s entry values should themselves impl
 /// [Serialize] as well.
 ///
-/// This serializer fn idealy is meant to be used with
-/// [serde_wasm_bindgen::Serializer] with wasm bindgen traits
-/// in [crate::macros] implemented for its parent type.
+/// This provides great level of flexibilty to specify a
+/// specific property of the given type and not all of the
+/// properties to be serialized as js plain object instead
+/// of js Map when wasm_bindgen convert traits are implemented
+/// for the given type by using [impl_wasm_traits](crate::impl_wasm_traits)
 ///
 /// Example:
 /// ```ignore
-/// #[derive(serde::Serialize, serde::Deserialize)]
+/// #[derive(serde::Serialize, serde::Deserialize, Tsify)]
 /// struct A {
-///     #[cfg_attr(target_family = "wasm", serde(serialize_with = "serialize_hashmap_as_object"))]
+///     #[cfg_attr(
+///         target_family = "wasm",
+///         serde(serialize_with = "serialize_hashmap_as_object"),
+///         tsify(type = "Record<string, number>")
+///     )]
 ///     field: HashMap<String, u8>,
 /// }
 /// #[cfg(target_family = "wasm")]
 /// impl_all_wasm_traits!(A);
+///
+/// #[wasm_bindgen]
+/// pub fn some_fn() -> A {
+///     let mut rust_map = HashMap::new();
+///     rust_map.insert("key".to_string(), 1);
+///     rust_map.insert("otherKey".to_string(), 2);
+///
+///     // in js when some_fn() is called the result will be:
+///     // { field: { key: 1, otherKey: 2 } }
+///     A { field: rust_map }
+/// }
 /// ```
 pub fn serialize_hashmap_as_object<K, V, S>(
     val: &HashMap<K, V>,
@@ -66,19 +83,36 @@ where
 /// The [BTreeMap]'s entry values should themselves impl
 /// [Serialize] as well.
 ///
-/// This serializer fn idealy is meant to be used with
-/// [serde_wasm_bindgen::Serializer] with wasm bindgen traits
-/// in [crate::macros] implemented for its parent type.
+/// This provides great level of flexibilty to specify a
+/// specific property of the given type and not all of the
+/// properties to be serialized as js plain object instead
+/// of js Map when wasm_bindgen convert traits are implemented
+/// for the given type by using [impl_wasm_traits](crate::impl_wasm_traits)
 ///
 /// Example:
 /// ```ignore
-/// #[derive(serde::Serialize, serde::Deserialize)]
+/// #[derive(serde::Serialize, serde::Deserialize, Tsify)]
 /// struct A {
-///     #[cfg_attr(target_family = "wasm", serde(serialize_with = "serialize_btreemap_as_object"))]
+///     #[cfg_attr(
+///         target_family = "wasm",
+///         serde(serialize_with = "serialize_hashmap_as_object"),
+///         tsify(type = "Record<string, number>")
+///     )]
 ///     field: BTreeMap<String, u8>,
 /// }
 /// #[cfg(target_family = "wasm")]
 /// impl_all_wasm_traits!(A);
+///
+/// #[wasm_bindgen]
+/// pub fn some_fn() -> A {
+///     let mut rust_map = BTreeMAp::new();
+///     rust_map.insert("key".to_string(), 1);
+///     rust_map.insert("otherKey".to_string(), 2);
+///
+///     // in js when some_fn() is called the result will be:
+///     // { field: { key: 1, otherKey: 2 } }
+///     A { field: rust_map }
+/// }
 /// ```
 pub fn serialize_btreemap_as_object<K, V, S>(
     val: &BTreeMap<K, V>,
@@ -112,7 +146,7 @@ mod tests {
     fn test_byte_serializer() {
         #[derive(serde::Serialize, serde::Deserialize, PartialEq, Debug)]
         struct Bytes {
-            #[serde(serialize_with = "bytes_serilializer")]
+            #[serde(serialize_with = "serilialize_as_bytes")]
             field: Vec<u8>,
         }
 

@@ -1,6 +1,6 @@
 [package]
-name = "wasm_bindgen_helper"
-description = "Provides utilities and helpers to easily build wasm-bindgen type bindings"
+name = "wasm-bindgen-utils"
+description = "Provides utilities and helpers that make working with wasm-bindgen easy"
 edition = "2021"
 license = "CAL-1.0"
 version = "0.0.0"

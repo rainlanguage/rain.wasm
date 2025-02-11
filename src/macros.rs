@@ -289,7 +289,7 @@ mod tests {
     #[derive(serde::Deserialize, serde::Serialize, Default)]
     pub struct A {
         pub field1: String,
-        #[serde(serialize_with = "bytes_serilializer")]
+        #[serde(serialize_with = "serilialize_as_bytes")]
         pub field2: Vec<u8>,
         #[serde(serialize_with = "serialize_hashmap_as_object")]
         pub field3: HashMap<String, u64>,
