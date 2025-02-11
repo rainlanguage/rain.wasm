@@ -1,0 +1,32 @@
+name: Rainix CI
+on: [push]
+
+concurrency:
+  group: ${{ github.ref }}-rainix
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  rainix:
+    strategy:
+      matrix:
+        task: [
+          rainix-rs-test,
+          rainix-rs-artifacts,
+          rainix-rs-static,
+          rainix-wasm-artifacts,
+          rainix-wasm-test
+        ]
+      fail-fast: false
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: DeterminateSystems/nix-installer-action@v4
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Run ${{ matrix.task }}
+        run: nix develop -c ${{ matrix.task }}
