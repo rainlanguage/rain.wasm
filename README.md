@@ -9,7 +9,7 @@ use wasm_bindgen_utils::{prelude::*, impl_wasm_traits, impl_custom_tsify, add_ts
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SomeType {
-    #[cfg_attr(target_family = "wasm", serde(serialize_with = "bytes_serilializer"))]
+    #[cfg_attr(target_family = "wasm", serde(serialize_with = "serialize_as_bytes"))]
     pub field: Vec<u8>,
     #[cfg_attr(target_family = "wasm", serde(serialize_with = "serialize_hashmap_as_object"))]
     pub other_field: HashMap<String, u8>,

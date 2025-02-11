@@ -6,11 +6,11 @@ use serde::{ser::SerializeStruct, Serialize, Serializer};
 /// ```ignore
 /// #[derive(serde::Serialize, serde::Deserialize)]
 /// struct A {
-///     #[serde(serialize_with = "serilialize_as_bytes")]
+///     #[serde(serialize_with = "serialize_as_bytes")]
 ///     field: Vec<u8>,
 /// }
 /// ```
-pub fn serilialize_as_bytes<S: Serializer>(val: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
+pub fn serialize_as_bytes<S: Serializer>(val: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
     serializer.serialize_bytes(val)
 }
 
@@ -146,7 +146,7 @@ mod tests {
     fn test_byte_serializer() {
         #[derive(serde::Serialize, serde::Deserialize, PartialEq, Debug)]
         struct Bytes {
-            #[serde(serialize_with = "serilialize_as_bytes")]
+            #[serde(serialize_with = "serialize_as_bytes")]
             field: Vec<u8>,
         }
 
