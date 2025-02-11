@@ -6,6 +6,8 @@
 //!
 //! Example:
 //! ```ignore
+//! use wasm_bindgen_utils::prelude::*;
+//!
 //! #[derive(Serialize, Deserialize)]
 //! #[serde(rename_all = "camelCase")]
 //! pub struct SomeType {
