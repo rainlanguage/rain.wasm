@@ -3,7 +3,7 @@ name = "wasm-bindgen-utils"
 description = "Provides utilities and helpers that make working with wasm-bindgen easy"
 edition = "2021"
 license = "CAL-1.0"
-version = "0.0.3"
+version = "0.0.4"
 homepage = "https://github.com/rainlanguage/rain.wasm"
 
 [dependencies]
