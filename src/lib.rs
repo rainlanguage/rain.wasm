@@ -58,9 +58,9 @@ pub use ser::*;
 pub mod prelude {
     pub use paste;
     pub use js_sys;
-    pub use tsify_next;
     pub use wasm_bindgen;
     pub use serde_wasm_bindgen;
+    pub use tsify_next as tsify;
     pub use wasm_bindgen_futures;
     pub use tsify_next::Tsify;
     pub use wasm_bindgen::prelude::*;
