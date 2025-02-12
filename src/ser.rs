@@ -74,6 +74,22 @@ where
     ser.end()
 }
 
+/// Same as [serialize_hashmap_as_object] but for `Option<HashMap>`
+pub fn serialize_opt_hashmap_as_object<K, V, S>(
+    val: &Option<HashMap<K, V>>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    K: ToString,
+    V: Serialize,
+    S: Serializer,
+{
+    match val {
+        Some(ref val) => serialize_hashmap_as_object(val, serializer),
+        None => serializer.serialize_none(),
+    }
+}
+
 /// Serializer fn that serializes BTreeMap as k/v object.
 /// in js it would be plain js object and not js Map.
 ///
@@ -132,6 +148,22 @@ where
         ser.serialize_field(key, value)?;
     }
     ser.end()
+}
+
+/// Same as [serialize_btreemap_as_object] but for `Option<BTreeMap>`
+pub fn serialize_opt_btreemap_as_object<K, V, S>(
+    val: &Option<BTreeMap<K, V>>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    K: ToString,
+    V: Serialize,
+    S: Serializer,
+{
+    match val {
+        Some(ref val) => serialize_btreemap_as_object(val, serializer),
+        None => serializer.serialize_none(),
+    }
 }
 
 #[cfg(target_family = "wasm")]
