@@ -14,6 +14,32 @@ pub fn serialize_as_bytes<S: Serializer>(val: &[u8], serializer: S) -> Result<S:
     serializer.serialize_bytes(val)
 }
 
+/// Serializer fn for serializing u64 as js bigint
+/// Example:
+/// ```ignore
+/// #[derive(serde::Serialize, serde::Deserialize)]
+/// struct A {
+///     #[serde(serialize_with = "serialize_u64_as_bigint")]
+///     field: u64,
+/// }
+/// ```
+pub fn serialize_u64_as_bigint<S: Serializer>(val: &u64, serializer: S) -> Result<S::Ok, S::Error> {
+    serializer.serialize_u128(*val as u128)
+}
+
+/// Serializer fn for serializing i64 as js bigint
+/// Example:
+/// ```ignore
+/// #[derive(serde::Serialize, serde::Deserialize)]
+/// struct A {
+///     #[serde(serialize_with = "serialize_i64_as_bigint")]
+///     field: i64,
+/// }
+/// ```
+pub fn serialize_i64_as_bigint<S: Serializer>(val: &i64, serializer: S) -> Result<S::Ok, S::Error> {
+    serializer.serialize_i128(*val as i128)
+}
+
 /// Serializer fn that serializes HashMap as k/v object.
 /// in js it would be plain js object and not js Map.
 ///
@@ -215,6 +241,54 @@ mod tests {
                 Token::U8(5),
                 Token::U8(6),
                 Token::SeqEnd,
+                Token::StructEnd,
+            ],
+        );
+    }
+
+    #[wasm_bindgen_test]
+    fn test_u64_serializer() {
+        #[derive(serde::Serialize, serde::Deserialize, PartialEq, Debug)]
+        struct Bytes {
+            #[serde(serialize_with = "serialize_u64_as_bigint")]
+            field: u64,
+        }
+
+        let bytes = Bytes { field: 123 };
+
+        assert_de_tokens(
+            &bytes,
+            &[
+                Token::Struct {
+                    name: "Bytes",
+                    len: 1,
+                },
+                Token::Str("field"),
+                Token::U64(123),
+                Token::StructEnd,
+            ],
+        );
+    }
+
+    #[wasm_bindgen_test]
+    fn test_i64_serializer() {
+        #[derive(serde::Serialize, serde::Deserialize, PartialEq, Debug)]
+        struct Bytes {
+            #[serde(serialize_with = "serialize_i64_as_bigint")]
+            field: i64,
+        }
+
+        let bytes = Bytes { field: 123 };
+
+        assert_de_tokens(
+            &bytes,
+            &[
+                Token::Struct {
+                    name: "Bytes",
+                    len: 1,
+                },
+                Token::Str("field"),
+                Token::I64(123),
                 Token::StructEnd,
             ],
         );
