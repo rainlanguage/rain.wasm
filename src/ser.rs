@@ -82,7 +82,6 @@ pub fn serialize_hashmap_as_object<V, S>(
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
-    // K: ToString,
     V: Serialize,
     S: Serializer,
 {
@@ -103,7 +102,6 @@ pub fn serialize_opt_hashmap_as_object<V, S>(
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
-    // K: ToString,
     V: Serialize,
     S: Serializer,
 {
@@ -155,7 +153,6 @@ pub fn serialize_btreemap_as_object<V, S>(
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
-    // K: ToString,
     V: Serialize,
     S: Serializer,
 {
@@ -176,7 +173,6 @@ pub fn serialize_opt_btreemap_as_object<V, S>(
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
-    // K: ToString,
     V: Serialize,
     S: Serializer,
 {
