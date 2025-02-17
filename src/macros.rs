@@ -50,7 +50,7 @@ macro_rules! impl_main_wasm_traits {
                 let mut err = String::new();
                 err.push_str(Self::TYPE_NAME);
                 err.push_str(": ");
-                let result = self.try_into_js_value();
+                let result = self.try_into_js_value().map(<<Self as $crate::prelude::Tsify>::JsType as $crate::prelude::JsCast>::unchecked_from_js);
                 $crate::prelude::UnwrapThrowExt::expect_throw(result.inspect_err(|e| err.push_str(&e.to_string())), &err).into_abi()
             }
         }
@@ -68,7 +68,7 @@ macro_rules! impl_main_wasm_traits {
                 let mut err = String::new();
                 err.push_str(Self::TYPE_NAME);
                 err.push_str(": ");
-                let result = Self::try_from_js_value(js.into());
+                let result = Self::try_from_js_value(<Self as $crate::prelude::Tsify>::JsType::from_abi(js).into());
                 $crate::prelude::UnwrapThrowExt::expect_throw(result.inspect_err(|e| err.push_str(&e.to_string())), &err)
             }
         }
@@ -109,16 +109,23 @@ macro_rules! impl_complementary_wasm_traits {
     ($type_name:path) => {
         impl $crate::prelude::wasm_bindgen::convert::RefFromWasmAbi for $type_name {
             type Abi = <<Self as $crate::prelude::Tsify>::JsType as $crate::prelude::wasm_bindgen::convert::RefFromWasmAbi>::Abi;
-            type Anchor = Box<$type_name>;
+            type Anchor = Box<Self>;
             unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
-                Box::new(<$type_name as $crate::prelude::wasm_bindgen::convert::FromWasmAbi>::from_abi(js))
+                Box::new(<Self as $crate::prelude::wasm_bindgen::convert::FromWasmAbi>::from_abi(js))
+            }
+        }
+        impl $crate::prelude::wasm_bindgen::convert::RefMutFromWasmAbi for $type_name {
+            type Abi = <<Self as $crate::prelude::Tsify>::JsType as $crate::prelude::wasm_bindgen::convert::FromWasmAbi>::Abi;
+            type Anchor = Box<Self>;
+            unsafe fn ref_mut_from_abi(js: Self::Abi) -> Self::Anchor {
+                Box::new(<Self as $crate::prelude::wasm_bindgen::convert::FromWasmAbi>::from_abi(js))
             }
         }
         impl $crate::prelude::wasm_bindgen::convert::LongRefFromWasmAbi for $type_name {
             type Abi = <<Self as $crate::prelude::Tsify>::JsType as $crate::prelude::wasm_bindgen::convert::LongRefFromWasmAbi>::Abi;
-            type Anchor = Box<$type_name>;
+            type Anchor = Box<Self>;
             unsafe fn long_ref_from_abi(js: Self::Abi) -> Self::Anchor {
-                Box::new(<$type_name as $crate::prelude::wasm_bindgen::convert::FromWasmAbi>::from_abi(js))
+                Box::new(<Self as $crate::prelude::wasm_bindgen::convert::FromWasmAbi>::from_abi(js))
             }
         }
         impl $crate::prelude::wasm_bindgen::convert::VectorIntoWasmAbi for $type_name {
@@ -136,7 +143,7 @@ macro_rules! impl_complementary_wasm_traits {
         impl $crate::prelude::wasm_bindgen::describe::WasmDescribeVector for $type_name {
             fn describe_vector() {
                 $crate::prelude::wasm_bindgen::describe::inform($crate::prelude::wasm_bindgen::describe::VECTOR);
-                <$type_name as $crate::prelude::wasm_bindgen::describe::WasmDescribe>::describe();
+                <Self as $crate::prelude::wasm_bindgen::describe::WasmDescribe>::describe();
             }
         }
         impl From<$type_name> for $crate::prelude::wasm_bindgen::JsValue {

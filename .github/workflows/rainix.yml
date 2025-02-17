@@ -25,8 +25,11 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - uses: DeterminateSystems/nix-installer-action@v4
-      - uses: DeterminateSystems/magic-nix-cache-action@v2
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
 
       - name: Run ${{ matrix.task }}
         run: nix develop -c ${{ matrix.task }}
