@@ -9,12 +9,13 @@ homepage = "https://github.com/rainlanguage/rain.wasm"
 [dependencies]
 paste = { version = "1.0" }
 js-sys = { version = "0.3" }
-wasm-bindgen = { version = "0.2" }
+wasm-bindgen = { version = "^0.2.93" }
 serde-wasm-bindgen = { version = "0.6" }
 wasm-bindgen-futures = { version = "0.4" }
 serde = { version = "1.0", features = ["derive", "rc"] }
 tsify = { version = "0.4", default-features = false, features = ["js", "wasm-bindgen"] }
 
 [dev-dependencies]
+macrotest = "1.0.13"
 serde_test = "1"
 wasm-bindgen-test = "0.3"
