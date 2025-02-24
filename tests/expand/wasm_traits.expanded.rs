@@ -92,18 +92,6 @@ impl ::wasm_bindgen_utils::prelude::wasm_bindgen::convert::RefFromWasmAbi for So
         )
     }
 }
-impl ::wasm_bindgen_utils::prelude::wasm_bindgen::convert::RefMutFromWasmAbi
-for SomeType {
-    type Abi = <<Self as ::wasm_bindgen_utils::prelude::Tsify>::JsType as ::wasm_bindgen_utils::prelude::wasm_bindgen::convert::FromWasmAbi>::Abi;
-    type Anchor = Box<Self>;
-    unsafe fn ref_mut_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(
-            <Self as ::wasm_bindgen_utils::prelude::wasm_bindgen::convert::FromWasmAbi>::from_abi(
-                js,
-            ),
-        )
-    }
-}
 impl ::wasm_bindgen_utils::prelude::wasm_bindgen::convert::LongRefFromWasmAbi
 for SomeType {
     type Abi = <<Self as ::wasm_bindgen_utils::prelude::Tsify>::JsType as ::wasm_bindgen_utils::prelude::wasm_bindgen::convert::LongRefFromWasmAbi>::Abi;
@@ -289,22 +277,6 @@ where
     type Abi = <<Self as ::wasm_bindgen_utils::prelude::Tsify>::JsType as ::wasm_bindgen_utils::prelude::wasm_bindgen::convert::RefFromWasmAbi>::Abi;
     type Anchor = Box<Self>;
     unsafe fn ref_from_abi(js: Self::Abi) -> Self::Anchor {
-        Box::new(
-            <Self as ::wasm_bindgen_utils::prelude::wasm_bindgen::convert::FromWasmAbi>::from_abi(
-                js,
-            ),
-        )
-    }
-}
-impl<T, E> ::wasm_bindgen_utils::prelude::wasm_bindgen::convert::RefMutFromWasmAbi
-for SomeGenericType<T, E>
-where
-    T: serde::Serialize + for<'de> serde::Deserialize<'de>,
-    E: serde::Serialize + for<'de> serde::Deserialize<'de>,
-{
-    type Abi = <<Self as ::wasm_bindgen_utils::prelude::Tsify>::JsType as ::wasm_bindgen_utils::prelude::wasm_bindgen::convert::FromWasmAbi>::Abi;
-    type Anchor = Box<Self>;
-    unsafe fn ref_mut_from_abi(js: Self::Abi) -> Self::Anchor {
         Box::new(
             <Self as ::wasm_bindgen_utils::prelude::wasm_bindgen::convert::FromWasmAbi>::from_abi(
                 js,

@@ -124,14 +124,6 @@ macro_rules! impl_complementary_wasm_traits {
                 Box::new(<Self as $crate::prelude::wasm_bindgen::convert::FromWasmAbi>::from_abi(js))
             }
         }
-        impl$(<$($generics),+>)? $crate::prelude::wasm_bindgen::convert::RefMutFromWasmAbi for $type_name$(<$($generics),+>)?
-        $(where $($generics: serde::Serialize + for<'de> serde::Deserialize<'de>, )+ )? {
-            type Abi = <<Self as $crate::prelude::Tsify>::JsType as $crate::prelude::wasm_bindgen::convert::FromWasmAbi>::Abi;
-            type Anchor = Box<Self>;
-            unsafe fn ref_mut_from_abi(js: Self::Abi) -> Self::Anchor {
-                Box::new(<Self as $crate::prelude::wasm_bindgen::convert::FromWasmAbi>::from_abi(js))
-            }
-        }
         impl$(<$($generics),+>)? $crate::prelude::wasm_bindgen::convert::LongRefFromWasmAbi for $type_name$(<$($generics),+>)?
         $(where $($generics: serde::Serialize + for<'de> serde::Deserialize<'de>, )+ )? {
             type Abi = <<Self as $crate::prelude::Tsify>::JsType as $crate::prelude::wasm_bindgen::convert::LongRefFromWasmAbi>::Abi;
