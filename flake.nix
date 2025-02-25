@@ -56,7 +56,7 @@
           cargo-expand
         ];
         buildInputs = rainix.devShells.${system}.default.buildInputs;
-        nativeBuildInputs = rainix.devShells.${system}.default.buildInputs;
+        nativeBuildInputs = rainix.devShells.${system}.default.nativeBuildInputs;
       };
     }
   );
