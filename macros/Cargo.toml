@@ -1,0 +1,19 @@
+[package]
+name = "wasm-bindgen-utils-macros"
+description = "Provides utility macros for wasm-bindgen-utils crate"
+edition = "2021"
+license = "CAL-1.0"
+version = "0.0.6"
+homepage = "https://github.com/rainlanguage/rain.wasm"
+keywords = ["wasm", "wasm-bindgen"]
+categories = ["wasm"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+serde = { workspace = true }
+serde_repr = { workspace = true }
+quote = "1"
+proc-macro2 = "1"
+syn = { version = "2", features = ["full"] }
