@@ -50,9 +50,13 @@
 //! ```
 
 mod ser;
+mod error;
+mod result;
 pub mod macros;
 
 pub use ser::*;
+pub use error::*;
+pub use result::*;
 
 // prelude exports
 pub mod prelude {
