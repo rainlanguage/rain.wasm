@@ -46,6 +46,15 @@
             CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER='wasm-bindgen-test-runner' cargo test --target wasm32-unknown-unknown
           '';
         };
+
+        rainix-test-macro = rainix.mkTask.${system} {
+          name = "rainix-wasm-test";
+          body = ''
+            set -euxo pipefail
+            cd macros
+            cargo test
+          '';
+        };
       };
 
       # For `nix develop`:
@@ -53,6 +62,7 @@
         packages = [
           packages.rainix-wasm-artifacts
           packages.rainix-wasm-test
+          packages.rainix-test-macro
           cargo-expand
         ];
         buildInputs = rainix.devShells.${system}.default.buildInputs;
