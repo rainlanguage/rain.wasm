@@ -23,7 +23,6 @@ pub fn collect_function_arguments(
     inputs: &syn::punctuated::Punctuated<FnArg, syn::token::Comma>,
 ) -> (bool, Vec<TokenStream>) {
     let mut has_self_receiver = false;
-
     let args = inputs
         .iter()
         .filter_map(|arg| match arg {
@@ -41,7 +40,7 @@ pub fn collect_function_arguments(
     (has_self_receiver, args)
 }
 
-/// Try to extract the inner type from a Result<T, E> type, returning None if not a Result
+/// Tries to extract the inner type T from a Result<T, E> type, returning None if not a Result
 pub fn try_extract_result_inner_type(method: &ImplItemFn) -> Option<&Type> {
     if let ReturnType::Type(_, return_type) = &method.sig.output {
         if let Type::Path(TypePath {

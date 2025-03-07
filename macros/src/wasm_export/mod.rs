@@ -2,11 +2,9 @@ use quote::quote;
 use proc_macro::TokenStream;
 use syn::{Error, ImplItem, ItemImpl};
 
-// Module for WASM export functionality
 mod attrs;
 mod fn_tools;
 
-// Re-export the public API
 pub use fn_tools::*;
 pub use attrs::handle_attrs;
 
@@ -15,46 +13,58 @@ pub const SKIP_ATTR: &str = "skip";
 pub const WASM_EXPORT_ATTR: &str = "wasm_export";
 pub const UNCHECKED_RETURN_TYPE_ATTR: &str = "unchecked_return_type";
 
-/// Starts macro parsing and expansion process
+/// Starts macro parsing and expansion process.
+/// This is the main logic of this macro by processing and handling of the attributes
+/// and generating the final output
 pub fn expand(_attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
-    // Parse the input as an impl block
+    // parse the input as an impl block, this will result in an error as intended if the
+    // macro was used on a non impl block since we have restricted its usage only for impl
+    // blocks, but this can change as more features and use cases may arrive in future
     let mut input = syn::parse::<ItemImpl>(item)?;
 
-    // Create vector to store exported items
+    // create vector to store exported items
     let mut export_items = Vec::new();
 
     for item in input.items.iter_mut() {
         if let ImplItem::Fn(method) = item {
-            // Process for export if applicable
+            // process the method only if its visibility is pub
             if let syn::Visibility::Public(_) = method.vis {
-                let (forwarding_attrs, inner_ret_type, should_skip) = handle_attrs(method)?;
+                // process method attributes
+                let (forward_attrs, inner_ret_type, should_skip) = handle_attrs(method)?;
+
+                // exclude from exported methods if skip attr was specified for this method
                 if should_skip {
                     continue;
                 }
-                if let Some(inner_ret_type) = inner_ret_type {
-                    let fn_name = &method.sig.ident;
-                    let is_async = method.sig.asyncness.is_some();
-                    let (has_self_receiver, args) = collect_function_arguments(&method.sig.inputs);
 
-                    // Create exported version
-                    let export_fn_name = syn::Ident::new(
-                        &format!("{}__{}", fn_name, WASM_EXPORT_ATTR),
-                        fn_name.span(),
+                // items included for exporting must all have Result<> return type
+                if let Some(inner_ret_type) = inner_ret_type {
+                    let org_fn_ident = &method.sig.ident;
+
+                    // create exported method and apply all the modifications
+                    let mut export_method = method.clone();
+
+                    // set exported method name, it is appended with __wasm_export
+                    export_method.sig.ident = syn::Ident::new(
+                        &format!("{}__{}", org_fn_ident, WASM_EXPORT_ATTR),
+                        org_fn_ident.span(),
                     );
 
-                    let mut export_method = method.clone();
-                    export_method.sig.ident = export_fn_name;
+                    // forward attributes for exported method
                     export_method
                         .attrs
                         .push(syn::parse_quote!(#[allow(non_snake_case)]));
-                    export_method.attrs.extend(forwarding_attrs);
+                    export_method.attrs.extend(forward_attrs);
 
-                    let new_return_type = syn::parse_quote!(-> WasmEncodedResult<#inner_ret_type>);
-                    export_method.sig.output = new_return_type;
+                    // set exported method return type as WasmEncodedResult
+                    export_method.sig.output =
+                        syn::parse_quote!(-> WasmEncodedResult<#inner_ret_type>);
 
-                    let call_expr = create_new_function_call(fn_name, has_self_receiver, &args);
-
-                    if is_async {
+                    // call the original method as body of the exported method
+                    let (has_self_receiver, args) = collect_function_arguments(&method.sig.inputs);
+                    let call_expr =
+                        create_new_function_call(org_fn_ident, has_self_receiver, &args);
+                    if method.sig.asyncness.is_some() {
                         export_method.block = syn::parse_quote!({
                             #call_expr.await.into()
                         });
@@ -64,6 +74,7 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                         });
                     }
 
+                    // gather built exported method
                     export_items.push(ImplItem::Fn(export_method));
                 } else {
                     return Err(Error::new_spanned(
@@ -75,15 +86,13 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         }
     }
 
-    // Create two impl blocks
-    let original_impl = input.clone();
-
-    let mut export_impl = input;
+    let mut export_impl = input.clone();
     export_impl.items = export_items;
 
-    // Generate the output with wasm_bindgen only on the export impl
+    // Create two impl blocks, original and exporting one
+    // Generate the output with wasm_bindgen only for the export impl block
     let output = quote! {
-        #original_impl
+        #input
 
         #[wasm_bindgen]
         #export_impl

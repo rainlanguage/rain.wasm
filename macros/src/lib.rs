@@ -2,14 +2,16 @@ use proc_macro::TokenStream;
 
 mod wasm_export;
 
-/// A proc macro that generates the wasm function bindings with "WasmEncodedResult"
+/// A proc macro that generates the wasm function bindings with `WasmEncodedResult`
 /// return type from rust functions that natively return [Result<T, E>], this makes
 /// it possible to avoid throwing on js when return value is [Result::Err] variant,
-/// instead it will return "WasmEncodedResult<T>" normally on js where either of
-/// [Result::Ok] or [Result::Err] varinats are included within the "WasmEcnodedResult"
+/// instead it will return `WasmEncodedResult<T>` normally on js where either of
+/// [Result::Ok] or [Result::Err] varinats are included within the `WasmEcnodedResult`
 /// properties.
-/// All of the "wasm_bindgen" attributes are available for this macro and are forwarded
-/// directly to "wasm_bindgen" macro on expansion.
+///
+/// All of the `wasm_bindgen` attributes are available for this macro and are forwarded
+/// directly to `wasm_bindgen` macro on expansion, however they can still be used outside
+/// of this macro as one would normally.
 ///
 /// Example:
 /// ```ignore
@@ -33,7 +35,7 @@ mod wasm_export;
 ///     }
 /// }
 /// ```
-/// above will translate to the following:
+/// above will basically translate to the following:
 /// ```ignore
 /// impl TestStruct {
 ///     pub async fn some_static_method((arg1, arg2): (String, u8)) -> Result<String, Error> {
