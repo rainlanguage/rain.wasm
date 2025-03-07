@@ -7,43 +7,35 @@ error: expected `impl`
 error: expected `impl`
  --> tests/unhappy/expected_impl.rs:8:1
   |
-8 | enum TestEnum {
+8 | enum TestEnum {}
   | ^^^^
+
+error: expected `impl`
+  --> tests/unhappy/expected_impl.rs:11:1
+   |
+11 | fn test() {}
+   | ^^
 
 error: expected `impl`
   --> tests/unhappy/expected_impl.rs:14:1
    |
-14 | fn test() {}
-   | ^^
+14 | type SomeType = u8;
+   | ^^^^
 
 error: expected `impl`
   --> tests/unhappy/expected_impl.rs:17:1
    |
-17 | type SomeType = u8;
-   | ^^^^
-
-error[E0658]: non-inline modules in proc macro input are unstable
-  --> tests/unhappy/expected_impl.rs:20:1
-   |
-20 | mod SomeMod;
-   | ^^^^^^^^^^^^
-   |
-   = note: see issue #54727 <https://github.com/rust-lang/rust/issues/54727> for more information
+17 | mod SomeMod {}
+   | ^^^
 
 error: expected `impl`
   --> tests/unhappy/expected_impl.rs:20:1
    |
-20 | mod SomeMod;
-   | ^^^
+20 | const SOME_COST: u8 = 1;
+   | ^^^^^
 
 error: expected `impl`
   --> tests/unhappy/expected_impl.rs:23:1
    |
-23 | const SOME_COST: u8 = 1;
-   | ^^^^^
-
-error: expected `impl`
-  --> tests/unhappy/expected_impl.rs:26:1
-   |
-26 | static SOME_STATIC: u8 = 1;
+23 | static SOME_STATIC: u8 = 1;
    | ^^^^^^

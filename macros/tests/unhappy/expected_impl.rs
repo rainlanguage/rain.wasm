@@ -5,10 +5,7 @@ extern crate wasm_bindgen_utils_macros;
 struct TestStruct;
 
 #[wasm_export]
-enum TestEnum {
-    A,
-    B,
-}
+enum TestEnum {}
 
 #[wasm_export]
 fn test() {}
@@ -17,7 +14,7 @@ fn test() {}
 type SomeType = u8;
 
 #[wasm_export]
-mod SomeMod;
+mod SomeMod {}
 
 #[wasm_export]
 const SOME_COST: u8 = 1;
