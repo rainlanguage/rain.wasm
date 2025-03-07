@@ -1,32 +1,7 @@
+use quote::ToTokens;
 use super::{try_extract_result_inner_type, SKIP_PARAM};
 use crate::wasm_export::{UNCHECKED_RETURN_TYPE_PARAM, WASM_EXPORT_ATTR};
-use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
-use std::ops::Deref;
-use syn::{punctuated::Punctuated, Attribute, FnArg, ImplItemFn, Meta, Token, Type};
-
-/// Collects function arguments and determines if the function has a self receiver
-pub fn collect_function_arguments(
-    inputs: &syn::punctuated::Punctuated<FnArg, syn::token::Comma>,
-) -> (bool, Vec<TokenStream>) {
-    let mut has_self_receiver = false;
-
-    let args = inputs
-        .iter()
-        .filter_map(|arg| match arg {
-            FnArg::Receiver(_) => {
-                has_self_receiver = true;
-                None
-            }
-            FnArg::Typed(pat_type) => {
-                let pat = pat_type.pat.deref();
-                Some(quote! { #pat })
-            }
-        })
-        .collect();
-
-    (has_self_receiver, args)
-}
+use syn::{punctuated::Punctuated, Attribute, ImplItemFn, Meta, Token, Type};
 
 /// Handles wasm_export macro attributes for a given method
 pub fn handle_attrs(
