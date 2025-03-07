@@ -62,8 +62,7 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
 
                     // call the original method as body of the exported method
                     let (has_self_receiver, args) = collect_function_arguments(&method.sig.inputs);
-                    let call_expr =
-                        create_new_function_call(org_fn_ident, has_self_receiver, &args);
+                    let call_expr = create_function_call(org_fn_ident, has_self_receiver, &args);
                     if method.sig.asyncness.is_some() {
                         export_method.block = syn::parse_quote!({
                             #call_expr.await.into()

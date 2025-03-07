@@ -4,7 +4,7 @@ use proc_macro2::TokenStream;
 use syn::{FnArg, Ident, ImplItemFn, Path, PathSegment, ReturnType, Type, TypePath};
 
 /// Creates a function call expression based on whether it's an instance or static method
-pub fn create_new_function_call(
+pub fn create_function_call(
     fn_name: &Ident,
     has_self_receiver: bool,
     args: &[TokenStream],
