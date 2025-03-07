@@ -12,7 +12,11 @@ impl_wasm_traits!(WasmEncodedError);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct WasmEncodedResult<T> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
     pub value: Option<T>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
     pub error: Option<WasmEncodedError>,
 }
 impl_wasm_traits!(WasmEncodedResult<T>);
