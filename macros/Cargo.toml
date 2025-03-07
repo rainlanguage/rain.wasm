@@ -2,6 +2,9 @@
 name = "wasm-bindgen-utils-macros"
 version = "0.0.6"
 edition = "2021"
+license = "CAL-1.0"
+description = "Provides helper macros for wasm-bindgen-utils"
+homepage = "https://github.com/rainlanguage/rain.wasm"
 
 [lib]
 proc-macro = true
