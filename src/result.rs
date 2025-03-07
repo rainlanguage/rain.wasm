@@ -5,22 +5,22 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct WasmEncodedError {
-    msg: String,
-    readable_msg: String,
+    pub msg: String,
+    pub readable_msg: String,
 }
 impl_wasm_traits!(WasmEncodedError);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct WasmEncodedResult<T> {
-    value: Option<T>,
-    error: Option<WasmEncodedError>,
+    pub value: Option<T>,
+    pub error: Option<WasmEncodedError>,
 }
 impl_wasm_traits!(WasmEncodedResult<T>);
 
 impl<T> WasmEncodedResult<T> {
-    pub fn success(data: T) -> Self {
+    pub fn success(value: T) -> Self {
         WasmEncodedResult {
-            value: Some(data),
+            value: Some(value),
             error: None,
         }
     }
@@ -35,8 +35,8 @@ impl<T> WasmEncodedResult<T> {
 impl<T, E: Into<WasmEncodedError>> From<Result<T, E>> for WasmEncodedResult<T> {
     fn from(result: Result<T, E>) -> Self {
         match result {
-            Ok(data) => WasmEncodedResult {
-                value: Some(data),
+            Ok(value) => WasmEncodedResult {
+                value: Some(value),
                 error: None,
             },
             Err(err) => WasmEncodedResult {
