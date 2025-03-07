@@ -13,7 +13,7 @@ impl TestStruct {
 
 #[wasm_export]
 impl TestStruct {
-    #[wasm_export([skip], unchecked_return_type = "string")]
+    #[wasm_export(skip - unchecked_return_type = "string")]
     pub async fn some_static_method2(arg: String) -> Result<String, Error> {
         Ok(String::new())
     }

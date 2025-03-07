@@ -1,7 +1,7 @@
 use quote::ToTokens;
-use super::{try_extract_result_inner_type, SKIP_ATTR};
+use super::{extend_err_msg, try_extract_result_inner_type, SKIP_ATTR};
 use crate::wasm_export::{UNCHECKED_RETURN_TYPE_ATTR, WASM_EXPORT_ATTR};
-use syn::{punctuated::Punctuated, Attribute, ImplItemFn, Meta, Token, Type, Error};
+use syn::{punctuated::Punctuated, Attribute, Error, ImplItemFn, Meta, Token, Type};
 
 /// Handles wasm_export macro attributes for a given method
 pub fn handle_attrs(
@@ -16,7 +16,11 @@ pub fn handle_attrs(
     for attr in &method.attrs {
         if attr.path().is_ident(WASM_EXPORT_ATTR) {
             keep.push(false);
-            let nested = attr.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)?;
+            let nested = attr
+                .parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)
+                .map_err(extend_err_msg(
+                    " as wasm_export attributes must be delimited by comma",
+                ))?;
             for meta in nested {
                 if meta.path().is_ident(UNCHECKED_RETURN_TYPE_ATTR) {
                     if unchecked_ret_type.is_some() {
@@ -27,7 +31,10 @@ pub fn handle_attrs(
                     } else if let syn::Expr::Lit(syn::ExprLit {
                         lit: syn::Lit::Str(str),
                         ..
-                    }) = &meta.require_name_value()?.value
+                    }) = &meta
+                        .require_name_value()
+                        .map_err(extend_err_msg(" and it must be a string literal"))?
+                        .value
                     {
                         unchecked_ret_type = Some(str.value());
                     } else {
@@ -37,7 +44,9 @@ pub fn handle_attrs(
                     if should_skip {
                         return Err(Error::new_spanned(meta, "duplicate skip attribute"));
                     }
-                    meta.require_path_only()?;
+                    meta.require_path_only().map_err(extend_err_msg(
+                        ", skip attribute does not take any extra tokens or arguments",
+                    ))?;
                     should_skip = true;
                 } else {
                     // include it unchanged to be forwarded to the respective exporting method

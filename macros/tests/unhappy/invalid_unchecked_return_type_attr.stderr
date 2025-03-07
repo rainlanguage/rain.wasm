@@ -1,5 +1,0 @@
-error: expected a value for this attribute: `unchecked_return_type = ...`
- --> tests/unhappy/invalid_unchecked_return_type_attr.rs:8:19
-  |
-8 |     #[wasm_export(unchecked_return_type)]
-  |                   ^^^^^^^^^^^^^^^^^^^^^

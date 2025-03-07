@@ -1,4 +1,4 @@
-error: unexpected token in attribute
+error: unexpected token in attribute, skip attribute does not take any extra tokens or arguments
  --> tests/unhappy/invalid_skip_attr.rs:8:24
   |
 8 |     #[wasm_export(skip = "string")]

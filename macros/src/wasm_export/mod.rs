@@ -19,7 +19,9 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
     // parse the input as an impl block, this will result in an error as intended if the
     // macro was used on a non impl block since we have restricted its usage only for impl
     // blocks, but this can change as more features and use cases may arrive in future
-    let mut input = syn::parse::<ItemImpl>(item)?;
+    let mut input = syn::parse::<ItemImpl>(item).map_err(extend_err_msg(
+        ", wasm_export macro is only applicable to impl blocks",
+    ))?;
 
     // create vector to store exported items
     let mut export_items = Vec::new();
@@ -98,4 +100,9 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
     };
 
     Ok(output.into())
+}
+
+/// Extends the original syn error msg with the given msg
+pub fn extend_err_msg(msg: &str) -> impl Fn(Error) -> Error + '_ {
+    |err| Error::new(err.span(), err.to_string() + msg)
 }
