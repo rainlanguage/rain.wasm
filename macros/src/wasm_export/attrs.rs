@@ -1,6 +1,6 @@
 use quote::ToTokens;
-use super::{try_extract_result_inner_type, SKIP_PARAM};
-use crate::wasm_export::{UNCHECKED_RETURN_TYPE_PARAM, WASM_EXPORT_ATTR};
+use super::{try_extract_result_inner_type, SKIP_ATTR};
+use crate::wasm_export::{UNCHECKED_RETURN_TYPE_ATTR, WASM_EXPORT_ATTR};
 use syn::{punctuated::Punctuated, Attribute, ImplItemFn, Meta, Token, Type, Error};
 
 /// Handles wasm_export macro attributes for a given method
@@ -17,7 +17,7 @@ pub fn handle_attrs(
             keep.push(false);
             let nested = attr.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)?;
             for meta in nested {
-                if meta.path().is_ident(UNCHECKED_RETURN_TYPE_PARAM) {
+                if meta.path().is_ident(UNCHECKED_RETURN_TYPE_ATTR) {
                     if unchecked_ret_type.is_some() {
                         return Err(Error::new_spanned(
                             meta,
@@ -32,7 +32,7 @@ pub fn handle_attrs(
                     } else {
                         return Err(Error::new_spanned(meta, "expected string literal"));
                     }
-                } else if meta.path().is_ident(SKIP_PARAM) {
+                } else if meta.path().is_ident(SKIP_ATTR) {
                     if should_skip {
                         return Err(Error::new_spanned(meta, "duplicate skip attribute"));
                     }

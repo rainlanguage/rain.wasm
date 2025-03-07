@@ -11,9 +11,9 @@ pub use fn_tools::*;
 pub use attrs::handle_attrs;
 
 // Constants used throughout the module
-pub const SKIP_PARAM: &str = "skip";
+pub const SKIP_ATTR: &str = "skip";
 pub const WASM_EXPORT_ATTR: &str = "wasm_export";
-pub const UNCHECKED_RETURN_TYPE_PARAM: &str = "unchecked_return_type";
+pub const UNCHECKED_RETURN_TYPE_ATTR: &str = "unchecked_return_type";
 
 /// Starts macro parsing and expansion process
 pub fn expand(_attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
