@@ -27,4 +27,4 @@ resolver = "2"
 
 [workspace.dependencies.wasm-bindgen-utils-macros]
 path = "macros"
-version = "*"
+version = "0.0.6"
