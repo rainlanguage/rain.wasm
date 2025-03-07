@@ -40,7 +40,7 @@ pub fn handle_attrs(
                     meta.require_path_only()?;
                     should_skip = true;
                 } else {
-                    // include unchanged to be forwarded to the respective exporting method
+                    // include it unchanged to be forwarded to the respective exporting method
                     forward_attrs.push(syn::parse_quote!(
                         #[wasm_bindgen(#meta)]
                     ));

@@ -1,6 +1,6 @@
 use quote::quote;
 use proc_macro::TokenStream;
-use syn::{Error, ImplItem, ItemImpl};
+use syn::{Error, ImplItem, ItemImpl, ReturnType};
 
 mod attrs;
 mod fn_tools;
@@ -13,9 +13,8 @@ pub const SKIP_ATTR: &str = "skip";
 pub const WASM_EXPORT_ATTR: &str = "wasm_export";
 pub const UNCHECKED_RETURN_TYPE_ATTR: &str = "unchecked_return_type";
 
-/// Starts macro parsing and expansion process.
-/// This is the main logic of this macro by processing and handling of the attributes
-/// and generating the final output
+/// Starts macro parsing and expansion process. This is the main logic of this macro
+/// by processing and handling of the attributes and generating the final output
 pub fn expand(_attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
     // parse the input as an impl block, this will result in an error as intended if the
     // macro was used on a non impl block since we have restricted its usage only for impl
@@ -32,7 +31,8 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                 // process method attributes
                 let (forward_attrs, inner_ret_type, should_skip) = handle_attrs(method)?;
 
-                // exclude from exported methods if skip attr was specified for this method
+                // exclude from exported methods if skip
+                // attr was specified for this method
                 if should_skip {
                     continue;
                 }
@@ -73,13 +73,13 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                         });
                     }
 
-                    // gather built exported method
                     export_items.push(ImplItem::Fn(export_method));
                 } else {
-                    return Err(Error::new_spanned(
-                        &method.sig.output,
-                        "expected Result<T, E> return type",
-                    ));
+                    let msg = "expected Result<T, E> return type";
+                    return match &method.sig.output {
+                        ReturnType::Default => Err(Error::new_spanned(&method.sig, msg)),
+                        ReturnType::Type(_, _) => Err(Error::new_spanned(&method.sig.output, msg)),
+                    };
                 }
             }
         }

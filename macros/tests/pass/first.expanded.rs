@@ -10,11 +10,13 @@ impl TestStruct {
     pub async fn some_skip_fn() -> Result<String, Error> {
         Ok(String::new())
     }
+    #[wasm_bindgen(some_other_wbg_attr = something)]
     pub async fn some_self_method(&self, arg: String) -> Result<TestStruct, Error> {
         Ok(TestStruct)
     }
+    #[some_external_macro]
     pub fn returns_num_array(&mut self) -> Result<Vec<u8>, Error> {
-        Ok(::alloc::vec::Vec::new())
+        Ok(Vec::new())
     }
 }
 #[wasm_bindgen]
@@ -27,9 +29,10 @@ impl TestStruct {
     ) -> WasmEncodedResult<String> {
         Self::some_static_method((arg1, arg2)).await.into()
     }
+    #[wasm_bindgen(some_other_wbg_attr = something)]
     #[allow(non_snake_case)]
     #[wasm_bindgen(js_name = "someSelfMethod")]
-    #[wasm_bindgen(some_other_wbg_attrs)]
+    #[wasm_bindgen(some_wbg_attr)]
     #[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<TestStruct>")]
     pub async fn some_self_method__wasm_export(
         &self,
@@ -37,6 +40,7 @@ impl TestStruct {
     ) -> WasmEncodedResult<TestStruct> {
         self.some_self_method(arg).await.into()
     }
+    #[some_external_macro]
     #[allow(non_snake_case)]
     #[wasm_bindgen(js_name = "returnsNumArray")]
     #[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<number[]>")]

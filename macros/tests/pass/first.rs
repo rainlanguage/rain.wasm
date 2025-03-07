@@ -15,13 +15,15 @@ impl TestStruct {
         Ok(String::new())
     }
 
-    #[wasm_export(js_name = "someSelfMethod", some_other_wbg_attrs)]
+    #[wasm_export(js_name = "someSelfMethod", some_wbg_attr)]
+    #[wasm_bindgen(some_other_wbg_attr = something)]
     pub async fn some_self_method(&self, arg: String) -> Result<TestStruct, Error> {
         Ok(TestStruct)
     }
 
     #[wasm_export(unchecked_return_type = "number[]", js_name = "returnsNumArray")]
+    #[some_external_macro]
     pub fn returns_num_array(&mut self) -> Result<Vec<u8>, Error> {
-        Ok(vec![])
+        Ok(Vec::new())
     }
 }

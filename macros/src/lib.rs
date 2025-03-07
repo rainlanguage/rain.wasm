@@ -10,8 +10,7 @@ mod wasm_export;
 /// properties.
 ///
 /// All of the `wasm_bindgen` attributes are available for this macro and are forwarded
-/// directly to `wasm_bindgen` macro on expansion, however they can still be used outside
-/// of this macro as one would normally.
+/// directly to `wasm_bindgen` macro on expansion.
 ///
 /// Example:
 /// ```ignore
