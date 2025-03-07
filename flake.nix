@@ -22,11 +22,12 @@
         src = pkgs.fetchFromGitHub {
           executable = true;
           owner = "dtolnay";
-          repo = "cargo-expand";
-          tag = "1.0.95";
+          repo = pname;
+          tag = version;
           hash = "sha256-VEjgSmZcy/CZ8EO/mJ2nBOpQviF4A/QQ8SpLLF/9x4c=";
         };
-        cargoHash = "sha256-m/F6fI1d8i5lVyURti86FWAs/U14TXpgg/nemLAv4NI=";
+        useFetchCargoVendor = true;
+        cargoHash = "sha256-ow5Zy0tv9W5w+Pib2yW1nPj2pUZt0HhplHxjIZZZzU8=";
       };
     in rec {
       packages = rec {
