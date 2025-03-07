@@ -36,9 +36,7 @@ mod wasm_export;
 /// above will translate to the following:
 /// ```ignore
 /// impl TestStruct {
-///     pub async fn some_static_method(
-///         (arg1, arg2): (String, u8),
-///     ) -> Result<String, Error> {
+///     pub async fn some_static_method((arg1, arg2): (String, u8)) -> Result<String, Error> {
 ///         Ok(String::new())
 ///     }
 ///     pub async fn some_skip_fn() -> Result<String, Error> {
@@ -50,19 +48,12 @@ mod wasm_export;
 /// }
 /// #[wasm_bindgen]
 /// impl TestStruct {
-///     #[wasm_bindgen(js_name = "someStaticMethod")]
-///     #[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<string>")]
-///     pub async fn some_static_method__wasm_export(
-///         (arg1, arg2): (String, u8),
-///     ) -> WasmEncodedResult<String> {
+///     #[wasm_bindgen(js_name = "someStaticMethod", unchecked_return_type = "WasmEncodedResult<string>")]
+///     pub async fn some_static_method__wasm_export((arg1, arg2): (String, u8)) -> WasmEncodedResult<String> {
 ///         Self::some_static_method((arg1, arg2)).await.into()
 ///     }
-///     #[wasm_bindgen(some_other_wbg_attrs)]
-///     #[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<TestStruct>")]
-///     pub fn some_self_method__wasm_export(
-///         &self,
-///         arg: String,
-///     ) -> WasmEncodedResult<TestStruct> {
+///     #[wasm_bindgen(some_other_wbg_attrs, unchecked_return_type = "WasmEncodedResult<TestStruct>")]
+///     pub fn some_self_method__wasm_export(&self, arg: String) -> WasmEncodedResult<TestStruct> {
 ///         self.some_self_method(arg).into()
 ///     }
 /// }
