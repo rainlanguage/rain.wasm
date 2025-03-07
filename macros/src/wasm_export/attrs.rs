@@ -1,12 +1,12 @@
 use quote::ToTokens;
 use super::{try_extract_result_inner_type, SKIP_PARAM};
 use crate::wasm_export::{UNCHECKED_RETURN_TYPE_PARAM, WASM_EXPORT_ATTR};
-use syn::{punctuated::Punctuated, Attribute, ImplItemFn, Meta, Token, Type};
+use syn::{punctuated::Punctuated, Attribute, ImplItemFn, Meta, Token, Type, Error};
 
 /// Handles wasm_export macro attributes for a given method
 pub fn handle_attrs(
     method: &mut ImplItemFn,
-) -> Result<(Vec<Attribute>, Option<Type>, bool), syn::Error> {
+) -> Result<(Vec<Attribute>, Option<Type>, bool), Error> {
     // Forward the wasm_bindgen attributes to the new function
     let mut keep = Vec::new();
     let mut should_skip = false;
@@ -19,7 +19,7 @@ pub fn handle_attrs(
             for meta in nested {
                 if meta.path().is_ident(UNCHECKED_RETURN_TYPE_PARAM) {
                     if unchecked_ret_type.is_some() {
-                        return Err(syn::Error::new_spanned(
+                        return Err(Error::new_spanned(
                             meta,
                             "duplicate unchecked_return_type attribute",
                         ));
@@ -30,11 +30,11 @@ pub fn handle_attrs(
                     {
                         unchecked_ret_type = Some(str.value());
                     } else {
-                        return Err(syn::Error::new_spanned(meta, "expected string literal"));
+                        return Err(Error::new_spanned(meta, "expected string literal"));
                     }
                 } else if meta.path().is_ident(SKIP_PARAM) {
                     if should_skip {
-                        return Err(syn::Error::new_spanned(meta, "duplicate skip attribute"));
+                        return Err(Error::new_spanned(meta, "duplicate skip attribute"));
                     }
                     meta.require_path_only()?;
                     should_skip = true;
