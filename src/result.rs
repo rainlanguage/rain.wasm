@@ -15,8 +15,8 @@ pub struct WasmEncodedError {
 }
 impl_wasm_traits!(WasmEncodedError);
 
-/// A generic struct that either holds info of a rust [Result] that
-/// is serializable natively to js through wasm bindgen, so binding
+/// A generic struct that holds info of a rust [Result] that is
+/// serializable natively to js through wasm bindgen, so binding
 /// functions can return normaly in js instead of throwing by holding
 /// either [Result::Ok] variant in its "value" prop or [Result::Err]
 /// in its "error" prop.
