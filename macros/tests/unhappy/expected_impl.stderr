@@ -13,29 +13,29 @@ error: expected `impl`, wasm_export macro is only applicable to impl blocks
 error: expected `impl`, wasm_export macro is only applicable to impl blocks
   --> tests/unhappy/expected_impl.rs:11:1
    |
-11 | fn test() {}
+11 | fn test_fn() {}
    | ^^
 
 error: expected `impl`, wasm_export macro is only applicable to impl blocks
   --> tests/unhappy/expected_impl.rs:14:1
    |
-14 | type SomeType = u8;
+14 | type TestType = u8;
    | ^^^^
 
 error: expected `impl`, wasm_export macro is only applicable to impl blocks
   --> tests/unhappy/expected_impl.rs:17:1
    |
-17 | mod SomeMod {}
+17 | mod test_mod {}
    | ^^^
 
 error: expected `impl`, wasm_export macro is only applicable to impl blocks
   --> tests/unhappy/expected_impl.rs:20:1
    |
-20 | const SOME_COST: u8 = 1;
+20 | const TEST_COST: u8 = 1;
    | ^^^^^
 
 error: expected `impl`, wasm_export macro is only applicable to impl blocks
   --> tests/unhappy/expected_impl.rs:23:1
    |
-23 | static SOME_STATIC: u8 = 1;
+23 | static TEST_STATIC: u8 = 1;
    | ^^^^^^

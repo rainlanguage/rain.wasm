@@ -8,18 +8,18 @@ struct TestStruct;
 enum TestEnum {}
 
 #[wasm_export]
-fn test() {}
+fn test_fn() {}
 
 #[wasm_export]
-type SomeType = u8;
+type TestType = u8;
 
 #[wasm_export]
-mod SomeMod {}
+mod test_mod {}
 
 #[wasm_export]
-const SOME_COST: u8 = 1;
+const TEST_COST: u8 = 1;
 
 #[wasm_export]
-static SOME_STATIC: u8 = 1;
+static TEST_STATIC: u8 = 1;
 
 fn main() {}

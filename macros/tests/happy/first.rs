@@ -16,7 +16,7 @@ impl TestStruct {
     }
 
     #[wasm_export(js_name = "someSelfMethod", some_wbg_attr)]
-    #[wasm_bindgen(some_other_wbg_attr = something)]
+    #[some_external_macro(some_attr = something)]
     pub async fn some_self_method(&self, arg: String) -> Result<TestStruct, Error> {
         Ok(TestStruct)
     }
