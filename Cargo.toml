@@ -14,9 +14,13 @@ serde-wasm-bindgen = { version = "0.6" }
 wasm-bindgen-futures = { version = "0.4" }
 serde = { version = "1.0", features = ["derive", "rc"] }
 tsify = { version = "0.4", default-features = false, features = ["js", "wasm-bindgen"] }
-wasm-bindgen-utils-macros = { path = "macros" }
+wasm-bindgen-utils-macros = { path = "macros", version = "=0.0.6" }
 
 [dev-dependencies]
-macrotest = "1.0.13"
+macrotest = "1.0"
 serde_test = "1"
 wasm-bindgen-test = "0.3"
+
+[workspace]
+members = ["macros"]
+resolver = "2"

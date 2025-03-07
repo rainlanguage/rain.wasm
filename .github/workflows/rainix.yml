@@ -15,7 +15,6 @@ jobs:
           rainix-rs-static,
           rainix-wasm-artifacts,
           rainix-wasm-test
-          rainix-test-macro
         ]
       fail-fast: false
     runs-on: ubuntu-latest
