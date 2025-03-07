@@ -23,8 +23,8 @@ impl_wasm_traits!(WasmEncodedError);
 /// Used in [wasm_bindgen_utils_macros::wasm_export] as the returning
 /// type of exporting wasm binding functions.
 ///
-/// [From] trait has been implemented for any [Result<T, E>] where
-/// "E" implements [Into<WasmEncodedError>].
+/// [From] trait has been implemented for this struct from any [Result<T, E>]
+/// where "E" implements [Into<WasmEncodedError>].
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct WasmEncodedResult<T> {
     #[serde(skip_serializing_if = "Option::is_none")]
