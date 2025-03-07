@@ -1,29 +1,29 @@
 error: expected `,`
- --> tests/fail/invalid_attrs_delimiter.rs:8:23
+ --> tests/unhappy/invalid_attrs_delimiter.rs:8:23
   |
 8 |     #[wasm_export(skip; unchecked_return_type = "string")]
   |                       ^
 
 error: expected identifier
-  --> tests/fail/invalid_attrs_delimiter.rs:16:19
+  --> tests/unhappy/invalid_attrs_delimiter.rs:16:19
    |
 16 |     #[wasm_export([skip], unchecked_return_type = "string")]
    |                   ^
 
 error: expected `,`
-  --> tests/fail/invalid_attrs_delimiter.rs:24:23
+  --> tests/unhappy/invalid_attrs_delimiter.rs:24:23
    |
 24 |     #[wasm_export(skip. unchecked_return_type = "string")]
    |                       ^
 
 error: expected `,`
-  --> tests/fail/invalid_attrs_delimiter.rs:32:23
+  --> tests/unhappy/invalid_attrs_delimiter.rs:32:23
    |
 32 |     #[wasm_export(skip/ unchecked_return_type = "string")]
    |                       ^
 
 error: expected `,`
-  --> tests/fail/invalid_attrs_delimiter.rs:40:24
+  --> tests/unhappy/invalid_attrs_delimiter.rs:40:24
    |
 40 |     #[wasm_export(skip unchecked_return_type = "string")]
    |                        ^^^^^^^^^^^^^^^^^^^^^

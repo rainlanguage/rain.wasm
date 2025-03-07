@@ -1,5 +1,5 @@
 error: duplicate skip attribute
- --> tests/fail/dup_skip_attr.rs:8:25
+ --> tests/unhappy/dup_skip_attr.rs:8:25
   |
 8 |     #[wasm_export(skip, skip)]
   |                         ^^^^

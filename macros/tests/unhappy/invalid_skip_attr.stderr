@@ -1,5 +1,5 @@
 error: unexpected token in attribute
- --> tests/fail/invalid_skip_attr.rs:8:24
+ --> tests/unhappy/invalid_skip_attr.rs:8:24
   |
 8 |     #[wasm_export(skip = "string")]
   |                        ^
