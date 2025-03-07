@@ -7,10 +7,9 @@ impl TestStruct {
     ) -> Result<String, Error> {
         Ok(String::new())
     }
-    pub async fn some_skip_fn() -> Result<String, Error> {
+    pub async fn some_skip_method() -> Result<String, Error> {
         Ok(String::new())
     }
-    #[some_external_macro(some_attr = something)]
     pub async fn some_self_method(&self, arg: String) -> Result<TestStruct, Error> {
         Ok(TestStruct)
     }
@@ -29,10 +28,10 @@ impl TestStruct {
     ) -> WasmEncodedResult<String> {
         Self::some_static_method((arg1, arg2)).await.into()
     }
-    #[some_external_macro(some_attr = something)]
     #[allow(non_snake_case)]
     #[wasm_bindgen(js_name = "someSelfMethod")]
     #[wasm_bindgen(some_wbg_attr)]
+    #[wasm_bindgen(some_other_wbg_attr = something)]
     #[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<TestStruct>")]
     pub async fn some_self_method__wasm_export(
         &self,
