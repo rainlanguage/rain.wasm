@@ -44,7 +44,7 @@ impl<T> WasmEncodedResult<T> {
             error: None,
         }
     }
-    /// Creates a success instance from the given WasmEncodedError
+    /// Creates an error instance from the given WasmEncodedError
     pub fn error(err: WasmEncodedError) -> Self {
         WasmEncodedResult {
             value: None,
