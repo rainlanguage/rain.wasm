@@ -1,5 +1,5 @@
 error: expected string literal
- --> tests/unhappy/expected_str_literal.rs:8:19
+ --> tests/unhappy/expected_str_literal.test.rs:8:19
   |
 8 |     #[wasm_export(unchecked_return_type = something)]
   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

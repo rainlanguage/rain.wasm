@@ -1,11 +1,11 @@
 error: expected Result<T, E> return type
- --> tests/unhappy/expected_result.rs:8:50
+ --> tests/unhappy/expected_result.test.rs:8:50
   |
 8 |     pub async fn some_static_method(arg: String) -> String {
   |                                                  ^^^^^^^^^
 
 error: expected Result<T, E> return type
-  --> tests/unhappy/expected_result.rs:15:9
+  --> tests/unhappy/expected_result.test.rs:15:9
    |
 15 |     pub async fn some_static_method() {}
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
