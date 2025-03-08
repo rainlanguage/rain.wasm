@@ -263,7 +263,7 @@ macro_rules! impl_wasm_traits {
 /// ```
 #[macro_export]
 macro_rules! impl_custom_tsify {
-    ($type_name:ident, $decl:literal) => {
+    ($type_name:ident $(< $($generics:ident),+ >)?, $decl:literal) => {
         $crate::prelude::paste::paste! {
             #[$crate::prelude::wasm_bindgen]
             extern "C" {
@@ -274,7 +274,7 @@ macro_rules! impl_custom_tsify {
             #[$crate::prelude::wasm_bindgen(typescript_custom_section)]
             const TYPESCRIPT_CONTENT: &'static str = $decl;
 
-            impl $crate::prelude::Tsify for $type_name {
+            impl$(<$($generics),+>)? $crate::prelude::Tsify for $type_name$(<$($generics),+>)? {
                 type JsType = [<Js $type_name>];
                 const DECL: &'static str = $decl;
             }

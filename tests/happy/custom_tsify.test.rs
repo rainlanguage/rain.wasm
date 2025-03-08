@@ -14,4 +14,3 @@ impl_custom_tsify!(
         field3: Record<string, bigint>;
     };"
 );
-add_ts_content!("export type SomeType = Uint8Array");
