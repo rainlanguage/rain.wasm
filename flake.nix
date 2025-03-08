@@ -10,6 +10,7 @@
     let
       pkgs = rainix.pkgs.${system};
 
+      # cargo-expand is a bin used with macrotest crate for testing macros
       # need to build from source since it errors on macos with current rainix rust version 1.79
       # and the version available on rainix.pkgs is 1.0.100 which is not compatible with rust 1.79,
       # the latest version that works with rust 1.79 is v1.0.95 so we build form source
@@ -22,11 +23,12 @@
         src = pkgs.fetchFromGitHub {
           executable = true;
           owner = "dtolnay";
-          repo = "cargo-expand";
-          tag = "1.0.95";
+          repo = pname;
+          tag = version;
           hash = "sha256-VEjgSmZcy/CZ8EO/mJ2nBOpQviF4A/QQ8SpLLF/9x4c=";
         };
-        cargoHash = "sha256-m/F6fI1d8i5lVyURti86FWAs/U14TXpgg/nemLAv4NI=";
+        useFetchCargoVendor = true;
+        cargoHash = "sha256-ow5Zy0tv9W5w+Pib2yW1nPj2pUZt0HhplHxjIZZZzU8=";
       };
     in rec {
       packages = rec {

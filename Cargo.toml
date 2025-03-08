@@ -16,6 +16,6 @@ serde = { version = "1.0", features = ["derive", "rc"] }
 tsify = { version = "0.4", default-features = false, features = ["js", "wasm-bindgen"] }
 
 [dev-dependencies]
-macrotest = "1.0.13"
+macrotest = "1.0"
 serde_test = "1"
 wasm-bindgen-test = "0.3"
