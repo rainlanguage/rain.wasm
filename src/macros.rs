@@ -309,7 +309,8 @@ macro_rules! add_ts_content {
 #[cfg(test)]
 mod tests {
     use crate::*;
-    use js_sys::JsString;
+    use wasm_bindgen::JsCast;
+    use js_sys::{JsString, Reflect};
     use wasm_bindgen_test::wasm_bindgen_test;
     use std::{collections::HashMap, str::FromStr};
 
@@ -339,13 +340,66 @@ mod tests {
     #[wasm_bindgen_test]
     fn test_macros() {
         let res = A::default().try_into_js_value().unwrap();
+        let field1_key = JsString::from_str("field1").unwrap();
+        let field2_key = JsString::from_str("field2").unwrap();
+        let field3_key = JsString::from_str("field3").unwrap();
 
         // should exist
-        assert!(JsString::from_str("field1").unwrap().js_in(&res));
-        assert!(JsString::from_str("field2").unwrap().js_in(&res));
-        assert!(JsString::from_str("field3").unwrap().js_in(&res));
+        assert!(field1_key.js_in(&res));
+        assert_eq!(
+            Reflect::get(&res, &field1_key)
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            ""
+        );
+        assert!(field2_key.js_in(&res));
+        assert!(Reflect::get(&res, &field2_key)
+            .unwrap()
+            .is_instance_of::<js_sys::Uint8Array>(),);
+        assert!(field3_key.js_in(&res));
+        assert!(Reflect::get(&res, &field3_key).unwrap().is_object(),);
 
         // should not exist
         assert!(!JsString::from_str("field4").unwrap().js_in(&res));
+    }
+
+    #[derive(serde::Deserialize, serde::Serialize, Default)]
+    pub struct B<T, E> {
+        pub field1: T,
+        pub field2: E,
+    }
+    impl_wasm_traits!(B<T, E>);
+    impl_custom_tsify!(
+        B<T, E>,
+        "export interface A<T, E> {
+            field1: T;
+            field2: E;
+        };"
+    );
+
+    #[wasm_bindgen_test]
+    fn test_macros_generic() {
+        let res = B::<String, u8>::default().try_into_js_value().unwrap();
+        let field1_key = JsString::from_str("field1").unwrap();
+        let field2_key = JsString::from_str("field2").unwrap();
+
+        // should exist
+        assert!(field1_key.js_in(&res));
+        assert_eq!(
+            Reflect::get(&res, &field1_key)
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            ""
+        );
+        assert!(field2_key.js_in(&res));
+        assert_eq!(
+            Reflect::get(&res, &field2_key).unwrap().as_f64().unwrap(),
+            0.0
+        );
+
+        // should not exist
+        assert!(!JsString::from_str("field3").unwrap().js_in(&res));
     }
 }

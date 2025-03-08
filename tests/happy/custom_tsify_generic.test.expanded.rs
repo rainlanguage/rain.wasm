@@ -166,7 +166,7 @@ impl core::ops::Deref for JsA {
         &self.obj
     }
 }
-impl ::wasm_bindgen_utils::prelude::Tsify for A {
+impl<T, E> ::wasm_bindgen_utils::prelude::Tsify for A<T, E> {
     type JsType = JsA;
     const DECL: &'static str = "export interface A<T, E> {
         field1: T;
