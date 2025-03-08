@@ -60,7 +60,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Create gitHub release with npm tarball
+      # Create gitHub release
       - name: Create GitHub Release
         id: gh_release
         uses: softprops/action-gh-release@v2
