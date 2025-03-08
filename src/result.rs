@@ -21,20 +21,17 @@ impl_wasm_traits!(WasmEncodedError);
 /// serializable natively to js through wasm bindgen, so binding
 /// functions can return it normaly in js instead of throwing by holding
 /// either [Result::Ok] variant in its `value` prop or [Result::Err]
-/// in its `error` prop.
+/// in its `error` prop as [WasmEncodedResult].
 ///
 /// Used in [wasm_bindgen_utils_macros::wasm_export!] as the returning
 /// type of exporting wasm binding functions.
-///
-/// [From] trait has been implemented for this struct from any [Result<T, E>]
-/// where `E` implements [Into<WasmEncodedError>].
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct WasmEncodedResult<T> {
-    /// Contains the value of a sucess result
+    /// Contains the result's success value of type `T` if this is a sucess instance
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
     pub value: Option<T>,
-    /// Contains the error value of an error result
+    /// Contains the result's error value as [WasmEncodedError] if this is an error instance
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
     pub error: Option<WasmEncodedError>,
@@ -58,18 +55,11 @@ impl<T> WasmEncodedResult<T> {
     }
 }
 
-// impl From<Result> trait for any Ts and Es
 impl<T, E: Into<WasmEncodedError>> From<Result<T, E>> for WasmEncodedResult<T> {
     fn from(result: Result<T, E>) -> Self {
         match result {
-            Ok(value) => WasmEncodedResult {
-                value: Some(value),
-                error: None,
-            },
-            Err(err) => WasmEncodedResult {
-                value: None,
-                error: Some(err.into()),
-            },
+            Ok(value) => Self::success(value),
+            Err(err) => Self::error(err),
         }
     }
 }
