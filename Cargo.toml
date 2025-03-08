@@ -17,13 +17,18 @@ tsify = { version = "0.4", default-features = false, features = ["js", "wasm-bin
 wasm-bindgen-utils-macros = { workspace = true }
 
 [dev-dependencies]
-macrotest = "1.0"
 serde_test = "1"
 wasm-bindgen-test = "0.3"
+macrotest = { workspace = true }
+trybuild = { workspace = true }
 
 [workspace]
 members = ["macros"]
 resolver = "2"
+
+[workspace.dependencies]
+macrotest = "1.0"
+trybuild = "1.0"
 
 [workspace.dependencies.wasm-bindgen-utils-macros]
 path = "macros"
