@@ -56,6 +56,14 @@
             cargo test --workspace
           '';
         };
+
+        rainix-rs-artifacts = rainix.mkTask.${system} {
+          name = "rainix-rs-artifacts";
+          body = ''
+            set -euxo pipefail
+            cargo build --release --workspace
+          '';
+        };
       };
 
       # For `nix develop`:
@@ -64,6 +72,7 @@
           packages.rainix-wasm-artifacts
           packages.rainix-wasm-test
           packages.rainix-rs-test
+          packages.rainix-rs-artifacts
           cargo-expand
         ];
         buildInputs = rainix.devShells.${system}.default.buildInputs;
