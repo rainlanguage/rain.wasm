@@ -356,9 +356,9 @@ mod tests {
         assert!(field2_key.js_in(&res));
         assert!(Reflect::get(&res, &field2_key)
             .unwrap()
-            .is_instance_of::<js_sys::Uint8Array>(),);
+            .is_instance_of::<js_sys::Uint8Array>());
         assert!(field3_key.js_in(&res));
-        assert!(Reflect::get(&res, &field3_key).unwrap().is_object(),);
+        assert!(Reflect::get(&res, &field3_key).unwrap().is_object());
 
         // should not exist
         assert!(!JsString::from_str("field4").unwrap().js_in(&res));
