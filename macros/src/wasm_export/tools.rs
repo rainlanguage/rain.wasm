@@ -1,7 +1,7 @@
 use quote::quote;
 use std::ops::Deref;
 use proc_macro2::TokenStream;
-use syn::{FnArg, Ident, ImplItemFn, Path, PathSegment, ReturnType, Type, TypePath};
+use syn::{Error, FnArg, Ident, ImplItemFn, Path, PathSegment, ReturnType, Type, TypePath};
 
 /// Creates a function call expression based on whether it's an instance or static method
 pub fn create_function_call(
@@ -63,4 +63,9 @@ pub fn try_extract_result_inner_type(method: &ImplItemFn) -> Option<&Type> {
         }
     }
     None
+}
+
+/// Extends the original syn error msg with the given msg
+pub fn extend_err_msg(msg: &str) -> impl Fn(Error) -> Error + '_ {
+    |err| Error::new(err.span(), err.to_string() + msg)
 }

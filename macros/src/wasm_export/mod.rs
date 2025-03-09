@@ -3,9 +3,9 @@ use proc_macro::TokenStream;
 use syn::{Error, ImplItem, ItemImpl, ReturnType};
 
 mod attrs;
-mod fn_tools;
+mod tools;
 
-pub use fn_tools::*;
+pub use tools::*;
 pub use attrs::handle_attrs;
 
 // Constants used throughout the module
@@ -100,9 +100,4 @@ pub fn expand(_attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
     };
 
     Ok(output.into())
-}
-
-/// Extends the original syn error msg with the given msg
-pub fn extend_err_msg(msg: &str) -> impl Fn(Error) -> Error + '_ {
-    |err| Error::new(err.span(), err.to_string() + msg)
 }
