@@ -372,7 +372,7 @@ mod tests {
     impl_wasm_traits!(B<T, E>);
     impl_custom_tsify!(
         B<T, E>,
-        "export interface A<T, E> {
+        "export interface B<T, E> {
             field1: T;
             field2: E;
         };"
