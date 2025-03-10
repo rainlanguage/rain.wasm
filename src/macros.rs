@@ -35,7 +35,7 @@ macro_rules! impl_main_wasm_traits {
             pub fn try_into_js_value(&self) -> Result<$crate::prelude::JsValue, $crate::prelude::serde_wasm_bindgen::Error> {
                 $crate::prelude::to_js_value(&self)
             }
-            /// A simple helpful warpper for serde_wasm_bindgen::from_value
+            /// A simple helpful wrapper for serde_wasm_bindgen::from_value
             /// as Self method for easy accessible conversion
             pub fn try_from_js_value(js: $crate::prelude::JsValue) -> Result<Self, $crate::prelude::serde_wasm_bindgen::Error> {
                 $crate::prelude::from_js_value(js)
