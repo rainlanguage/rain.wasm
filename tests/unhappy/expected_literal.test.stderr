@@ -1,0 +1,11 @@
+error: unexpected end of macro invocation
+ --> tests/unhappy/expected_literal.test.rs:5:21
+  |
+5 | impl_custom_tsify!(A);
+  |                     ^ missing tokens in macro arguments
+  |
+note: while trying to match `,`
+ --> src/macros.rs
+  |
+  |     ($type_name:ident $(< $($generics:ident),+ >)?, $decl:literal) => {
+  |                                                   ^

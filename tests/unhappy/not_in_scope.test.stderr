@@ -1,0 +1,5 @@
+error[E0412]: cannot find type `SomeType` in this scope
+ --> tests/unhappy/not_in_scope.test.rs:4:19
+  |
+4 | impl_wasm_traits!(SomeType);
+  |                   ^^^^^^^^ not found in this scope
