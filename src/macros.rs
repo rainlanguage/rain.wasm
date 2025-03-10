@@ -30,7 +30,7 @@ macro_rules! impl_main_wasm_traits {
         impl$(<$($generics),+>)? $type_name$(<$($generics),+>)?
         $(where $($generics: serde::Serialize + for<'de> serde::Deserialize<'de>, )+ )? {
             const TYPE_NAME: &'static str = stringify!($type_name);
-            /// A simple helpful warpper for serde_wasm_bindgen::to_value
+            /// A simple helpful wrapper for serde_wasm_bindgen::to_value
             /// as self method for easy accessible conversion
             pub fn try_into_js_value(&self) -> Result<$crate::prelude::JsValue, $crate::prelude::serde_wasm_bindgen::Error> {
                 $crate::prelude::to_js_value(&self)
