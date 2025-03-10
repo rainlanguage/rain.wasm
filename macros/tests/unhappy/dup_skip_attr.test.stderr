@@ -1,4 +1,4 @@
-error: duplicate skip attribute
+error: duplicate `skip` attribute
  --> tests/unhappy/dup_skip_attr.test.rs:8:25
   |
 8 |     #[wasm_export(skip, skip)]

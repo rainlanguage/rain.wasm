@@ -28,6 +28,7 @@ mod wasm_export;
 ///     pub async fn some_skip_fn() -> Result<String, Error> {
 ///         Ok(String::new())
 ///     }
+///     #[some_external_macro]
 ///     #[wasm_export(some_other_wbg_attrs)]
 ///     pub fn some_self_method(&self, arg: String) -> Result<TestStruct, Error> {
 ///         Ok(TestStruct)
@@ -43,10 +44,12 @@ mod wasm_export;
 ///     pub async fn some_skip_fn() -> Result<String, Error> {
 ///         Ok(String::new())
 ///     }
+///     #[some_external_macro]
 ///     pub fn some_self_method(&self, arg: String) -> Result<TestStruct, Error> {
 ///         Ok(TestStruct)
 ///     }
 /// }
+/// #[cfg(target_family = "wasm")]
 /// #[wasm_bindgen]
 /// impl TestStruct {
 ///     #[wasm_bindgen(js_name = "someStaticMethod", unchecked_return_type = "WasmEncodedResult<string>")]

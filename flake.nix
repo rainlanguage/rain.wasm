@@ -53,7 +53,7 @@
           name = "rainix-rs-test";
           body = ''
             set -euxo pipefail
-            cargo test --workspace
+            TEST_WASM_BINDGEN_UTILS_MACROS=1 cargo test --workspace
           '';
         };
 

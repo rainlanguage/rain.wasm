@@ -1,4 +1,4 @@
-error: duplicate unchecked_return_type attribute
+error: duplicate `unchecked_return_type` attribute
  --> tests/unhappy/dup_unchecked_return_type_attr.test.rs:8:53
   |
 8 |     #[wasm_export(unchecked_return_type = "string", unchecked_return_type = "string")]
