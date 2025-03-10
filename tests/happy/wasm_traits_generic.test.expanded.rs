@@ -12,7 +12,7 @@ where
     K: serde::Serialize + for<'de> serde::Deserialize<'de>,
 {
     const TYPE_NAME: &'static str = "SomeGenericType";
-    /// A simple helpful warpper for serde_wasm_bindgen::to_value
+    /// A simple helpful wrapper for serde_wasm_bindgen::to_value
     /// as self method for easy accessible conversion
     pub fn try_into_js_value(
         &self,
