@@ -22,7 +22,7 @@ where
     > {
         ::wasm_bindgen_utils::prelude::to_js_value(&self)
     }
-    /// A simple helpful warpper for serde_wasm_bindgen::from_value
+    /// A simple helpful wrapper for serde_wasm_bindgen::from_value
     /// as Self method for easy accessible conversion
     pub fn try_from_js_value(
         js: ::wasm_bindgen_utils::prelude::JsValue,
