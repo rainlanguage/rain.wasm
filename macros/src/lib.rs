@@ -49,7 +49,6 @@ mod wasm_export;
 ///         Ok(TestStruct)
 ///     }
 /// }
-/// #[cfg(target_family = "wasm")]
 /// #[wasm_bindgen]
 /// impl TestStruct {
 ///     #[wasm_bindgen(js_name = "someStaticMethod", unchecked_return_type = "WasmEncodedResult<string>")]
