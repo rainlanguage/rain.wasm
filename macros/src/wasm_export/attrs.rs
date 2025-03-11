@@ -1,9 +1,6 @@
 use quote::ToTokens;
 use proc_macro2::Span;
-use super::{
-    tools::{extend_err_msg, try_extract_result_inner_type},
-    SKIP_ATTR, UNCHECKED_RETURN_TYPE_ATTR,
-};
+use super::tools::{extend_err_msg, try_extract_result_inner_type};
 use syn::{
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
@@ -11,6 +8,14 @@ use syn::{
     token::Comma,
     Error, Meta, ReturnType, Token, Type,
 };
+
+/// Contains list of wasm_export macro attribute keys
+pub struct AttrKeys;
+impl AttrKeys {
+    pub const SKIP: &'static str = "skip";
+    pub const WASM_EXPORT: &'static str = "wasm_export";
+    pub const UNCHECKED_RETURN_TYPE: &'static str = "unchecked_return_type";
+}
 
 /// Struct that holds the parsed wasm_export attributes details
 #[derive(Debug, Clone, Default)]
@@ -80,7 +85,7 @@ pub fn handle_attrs_sequence(
     wasm_export_attrs: &mut WasmExportAttrs,
 ) -> Result<(), Error> {
     for meta in metas {
-        if meta.path().is_ident(UNCHECKED_RETURN_TYPE_ATTR) {
+        if meta.path().is_ident(AttrKeys::UNCHECKED_RETURN_TYPE) {
             if wasm_export_attrs.unchecked_return_type.is_some() {
                 return Err(Error::new_spanned(
                     meta,
@@ -98,7 +103,7 @@ pub fn handle_attrs_sequence(
             } else {
                 return Err(Error::new_spanned(meta, "expected string literal"));
             }
-        } else if meta.path().is_ident(SKIP_ATTR) {
+        } else if meta.path().is_ident(AttrKeys::SKIP) {
             if wasm_export_attrs.should_skip.is_some() {
                 return Err(Error::new_spanned(meta, "duplicate `skip` attribute"));
             }

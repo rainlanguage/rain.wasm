@@ -1,6 +1,5 @@
 use quote::quote;
 use std::ops::Deref;
-use super::WASM_EXPORT_ATTR;
 use proc_macro2::TokenStream;
 use syn::{
     punctuated::Punctuated, token::Comma, Block, Error, FnArg, Ident, Path, PathSegment,
@@ -86,7 +85,7 @@ pub fn extend_err_msg(msg: &str) -> impl Fn(Error) -> Error + '_ {
 /// Creates the function name from the original name, it is appended by __wasm_export
 pub fn populate_name(org_fn_ident: &Ident) -> Ident {
     Ident::new(
-        &format!("{}__{}", org_fn_ident, WASM_EXPORT_ATTR),
+        &format!("{}__wasm_export", org_fn_ident),
         org_fn_ident.span(),
     )
 }

@@ -1,6 +1,6 @@
 use quote::quote;
 use proc_macro::TokenStream;
-use super::{WASM_EXPORT_ATTR, tools::*, attrs::*};
+use super::{tools::*, attrs::*};
 use syn::{
     punctuated::Punctuated, Error, ImplItemFn, Meta, Token, Type, ImplItem, ItemImpl, ReturnType,
 };
@@ -97,7 +97,7 @@ fn handle_method_attrs(method: &mut ImplItemFn) -> Result<(Vec<Meta>, Option<Typ
     let mut keep = Vec::new();
     let mut wasm_export_attrs = WasmExportAttrs::default();
     for attr in method.attrs.iter_mut() {
-        if attr.path().is_ident(WASM_EXPORT_ATTR) {
+        if attr.path().is_ident(AttrKeys::WASM_EXPORT) {
             // skip parsing by delimited comma if there are no nested attrs
             if !matches!(attr.meta, Meta::Path(_)) {
                 let nested_seq = attr

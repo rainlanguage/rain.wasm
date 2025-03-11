@@ -6,11 +6,6 @@ mod attrs;
 mod tools;
 mod impl_block;
 
-// wasm_export attribute keys
-pub const SKIP_ATTR: &str = "skip";
-pub const WASM_EXPORT_ATTR: &str = "wasm_export";
-pub const UNCHECKED_RETURN_TYPE_ATTR: &str = "unchecked_return_type";
-
 /// Starts macro parsing and expansion process by routing the parse towards corresponding
 /// parse logic based on input type
 pub fn expand(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {

@@ -6,7 +6,7 @@ mod wasm_export;
 /// return type from rust functions that natively return [Result<T, E>], this makes
 /// it possible to avoid throwing on js when return value is [Result::Err] variant,
 /// instead it will return `WasmEncodedResult<T>` normally on js where either of
-/// [Result::Ok] or [Result::Err] varinats are included within the `WasmEcnodedResult`
+/// [Result::Ok] or [Result::Err] variants are included within the `WasmEncodedResult`
 /// properties.
 ///
 /// All of the `wasm_bindgen` attributes are available for this macro and are forwarded
