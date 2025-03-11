@@ -6,7 +6,15 @@ use syn::{
 };
 
 /// Parses an entire impl block methods and generates the wasm exported impl block with all the expected methods
-pub fn parse(impl_block: &mut ItemImpl, top_attrs: Vec<Meta>) -> Result<TokenStream, Error> {
+pub fn parse(impl_block: &mut ItemImpl, top_attrs: WasmExportAttrs) -> Result<TokenStream, Error> {
+    // bail early if invalid attribute was identified
+    if let Some((_, span)) = top_attrs.unchecked_return_type {
+        return Err(Error::new(
+            span,
+            "unexpected `unchecked_return_type` attributes, it can only be used for impl block methods",
+        ));
+    }
+
     // create vector to store exported items
     // and loop over items inside of the impl block and process each method
     let mut export_items = Vec::new();
@@ -63,22 +71,15 @@ pub fn parse(impl_block: &mut ItemImpl, top_attrs: Vec<Meta>) -> Result<TokenStr
 
     let mut export_impl_block = impl_block.clone();
     export_impl_block.items = export_items;
-    export_impl_block.attrs = vec![];
-    if option_env!("TEST_WASM_BINDGEN_UTILS_MACROS").is_none() {
-        // we only need exports on wasm target so we apply cfg, but for easy
-        // testing we need to not apply it using env so we can test the expansion
-        export_impl_block.attrs.push(syn::parse_quote!(
-            #[cfg(target_family = "wasm")]
-        ));
-    }
-    if !top_attrs.is_empty() {
-        export_impl_block.attrs.push(syn::parse_quote!(
-            #[wasm_bindgen(#(#top_attrs),*)]
-        ));
+    if !top_attrs.forward_attrs.is_empty() {
+        let forward = &top_attrs.forward_attrs;
+        export_impl_block.attrs = vec![syn::parse_quote!(
+            #[wasm_bindgen(#(#forward),*)]
+        )];
     } else {
-        export_impl_block.attrs.push(syn::parse_quote!(
+        export_impl_block.attrs = vec![syn::parse_quote!(
             #[wasm_bindgen]
-        ));
+        )];
     }
 
     // Create two impl blocks, original and exporting one
