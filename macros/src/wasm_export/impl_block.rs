@@ -11,7 +11,7 @@ pub fn parse(impl_block: &mut ItemImpl, top_attrs: WasmExportAttrs) -> Result<To
     if let Some((_, span)) = top_attrs.unchecked_return_type {
         return Err(Error::new(
             span,
-            "unexpected `unchecked_return_type` attribute, it can only be used for impl block methods or standalone functions",
+            "unexpected `unchecked_return_type` attribute, it can only be used for impl block methods",
         ));
     }
 
