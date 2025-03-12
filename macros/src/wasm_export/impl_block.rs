@@ -127,3 +127,65 @@ fn handle_method_attrs(method: &mut ImplItemFn) -> Result<(Vec<Meta>, Option<Typ
         wasm_export_attrs.should_skip.is_some(),
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_handle_method_attrs_happy() {
+        let mut method: ImplItemFn = syn::parse_quote!(
+            #[some_external_macro]
+            #[wasm_export(some_forward_attr, unchecked_return_type = "string", skip)]
+            pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+        );
+        let result = handle_method_attrs(&mut method).unwrap();
+        let expected = (
+            vec![
+                syn::parse_quote!(some_forward_attr),
+                syn::parse_quote!(unchecked_return_type = "WasmEncodedResult<string>"),
+            ],
+            Some(syn::parse_quote!(SomeType)),
+            true,
+        );
+        assert_eq!(result, expected);
+        assert_eq!(
+            method.attrs,
+            vec![syn::parse_quote!(#[some_external_macro])]
+        );
+
+        let mut method: ImplItemFn = syn::parse_quote!(
+            #[wasm_export]
+            pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+        );
+        let result = handle_method_attrs(&mut method).unwrap();
+        let expected = (
+            vec![syn::parse_quote!(
+                unchecked_return_type = "WasmEncodedResult<SomeType>"
+            )],
+            Some(syn::parse_quote!(SomeType)),
+            false,
+        );
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_handle_method_attrs_unhappy() {
+        // bad delimiter
+        let mut method: ImplItemFn = syn::parse_quote!(
+            #[wasm_export(some_forward_attr; skip)]
+            pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+        );
+        let err = handle_method_attrs(&mut method).unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "expected `,` as wasm_export attributes must be delimited by comma"
+        );
+    }
+}

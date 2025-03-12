@@ -118,3 +118,177 @@ pub fn handle_attrs_sequence(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+    use syn::parse::Parser;
+    use proc_macro2::TokenStream;
+
+    #[test]
+    fn test_wasm_export_attrs_parse() {
+        // no attributes
+        let stream = TokenStream::new();
+        let result: WasmExportAttrs = syn::parse2(stream).unwrap();
+        assert!(result.should_skip.is_none());
+        assert!(result.forward_attrs.is_empty());
+        assert!(result.unchecked_return_type.is_none());
+
+        // only skip attr
+        let stream = TokenStream::from_str("skip").unwrap();
+        let result = syn::parse2::<WasmExportAttrs>(stream).unwrap_err();
+        assert_eq!(
+            result.to_string(),
+            "unexpected `skip` attribute, it is only valid for methods of an impl block"
+        );
+
+        // mixed
+        let stream =
+            TokenStream::from_str("some_top_attr, some_other_top_attr = something").unwrap();
+        let result: WasmExportAttrs = syn::parse2(stream).unwrap();
+        let expected_forward_attrs = vec![
+            syn::parse_quote!(some_top_attr),
+            syn::parse_quote!(some_other_top_attr = something),
+        ];
+        assert!(result.should_skip.is_none());
+        assert!(result.unchecked_return_type.is_none());
+        assert_eq!(result.forward_attrs, expected_forward_attrs);
+    }
+
+    #[test]
+    fn test_was_export_ret_type_with_override() {
+        let ret_type: ReturnType = syn::parse_quote!(-> Result<SomeType, Error>);
+        let mut wasm_export_attrs = WasmExportAttrs {
+            forward_attrs: vec![],
+            should_skip: None,
+            unchecked_return_type: Some(("SomeOverrideType".to_string(), Span::call_site())),
+        };
+        let result = wasm_export_attrs.handle_return_type(&ret_type).unwrap();
+
+        let expected_type: Type = syn::parse_quote!(SomeType);
+        assert_eq!(result, expected_type);
+
+        let expected_wasm_export_attrs = WasmExportAttrs {
+            forward_attrs: vec![syn::parse_quote!(
+                unchecked_return_type = "WasmEncodedResult<SomeOverrideType>"
+            )],
+            should_skip: None,
+            unchecked_return_type: Some(("SomeOverrideType".to_string(), Span::call_site())),
+        };
+        assert!(wasm_export_attrs.should_skip.is_none());
+        assert_eq!(
+            wasm_export_attrs.forward_attrs,
+            expected_wasm_export_attrs.forward_attrs
+        );
+        assert_eq!(
+            wasm_export_attrs.unchecked_return_type.unwrap().0,
+            expected_wasm_export_attrs.unchecked_return_type.unwrap().0
+        );
+    }
+
+    #[test]
+    fn test_was_export_ret_type_without_override() {
+        let ret_type: ReturnType = syn::parse_quote!(-> Result<SomeType, Error>);
+        let mut wasm_export_attrs = WasmExportAttrs {
+            forward_attrs: vec![],
+            should_skip: None,
+            unchecked_return_type: None,
+        };
+        let result = wasm_export_attrs.handle_return_type(&ret_type).unwrap();
+
+        let expected_type: Type = syn::parse_quote!(SomeType);
+        assert_eq!(result, expected_type);
+
+        let expected_wasm_export_attrs = WasmExportAttrs {
+            forward_attrs: vec![syn::parse_quote!(
+                unchecked_return_type = "WasmEncodedResult<SomeType>"
+            )],
+            should_skip: None,
+            unchecked_return_type: None,
+        };
+        assert!(wasm_export_attrs.should_skip.is_none());
+        assert!(wasm_export_attrs.unchecked_return_type.is_none());
+        assert_eq!(
+            wasm_export_attrs.forward_attrs,
+            expected_wasm_export_attrs.forward_attrs
+        );
+    }
+
+    #[test]
+    fn test_handle_attrs_sequence_happy() {
+        // parse a mixed seq of attrs
+        let input = TokenStream::from_str(
+            r#"skip, unchecked_return_type = "something", some_forward_attr"#,
+        )
+        .unwrap();
+        let seq = Punctuated::<Meta, Token![,]>::parse_terminated
+            .parse2(input)
+            .unwrap();
+        let mut wasm_export_attrs = WasmExportAttrs::default();
+        handle_attrs_sequence(seq, &mut wasm_export_attrs).unwrap();
+        assert!(wasm_export_attrs.should_skip.is_some());
+        assert_eq!(
+            wasm_export_attrs.unchecked_return_type.unwrap().0,
+            "something"
+        );
+        assert_eq!(
+            wasm_export_attrs.forward_attrs,
+            vec![syn::parse_quote!(some_forward_attr)]
+        );
+    }
+
+    #[test]
+    fn test_handle_attrs_sequence_unhappy() {
+        // dup skip
+        let input = TokenStream::from_str(r#"skip, skip"#).unwrap();
+        let seq = Punctuated::<Meta, Token![,]>::parse_terminated
+            .parse2(input)
+            .unwrap();
+        let mut wasm_export_attrs = WasmExportAttrs::default();
+        let err = handle_attrs_sequence(seq, &mut wasm_export_attrs).unwrap_err();
+        assert_eq!(err.to_string(), "duplicate `skip` attribute");
+
+        // dup unchecked_return_type
+        let input = TokenStream::from_str(
+            r#"unchecked_return_type = "somethingElse", unchecked_return_type = "something""#,
+        )
+        .unwrap();
+        let seq = Punctuated::<Meta, Token![,]>::parse_terminated
+            .parse2(input)
+            .unwrap();
+        let mut wasm_export_attrs = WasmExportAttrs::default();
+        let err = handle_attrs_sequence(seq, &mut wasm_export_attrs).unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "duplicate `unchecked_return_type` attribute"
+        );
+
+        // invalid skip
+        let input = TokenStream::from_str(r#"skip = something"#).unwrap();
+        let seq = Punctuated::<Meta, Token![,]>::parse_terminated
+            .parse2(input)
+            .unwrap();
+        let mut wasm_export_attrs = WasmExportAttrs::default();
+        let err = handle_attrs_sequence(seq, &mut wasm_export_attrs).unwrap_err();
+        assert_eq!(err.to_string(), "unexpected token in attribute, `skip` attribute does not take any extra tokens or arguments");
+
+        // invalid unchecked_return_type
+        let input = TokenStream::from_str(r#"unchecked_return_type"#).unwrap();
+        let seq = Punctuated::<Meta, Token![,]>::parse_terminated
+            .parse2(input)
+            .unwrap();
+        let mut wasm_export_attrs = WasmExportAttrs::default();
+        let err = handle_attrs_sequence(seq, &mut wasm_export_attrs).unwrap_err();
+        assert_eq!(err.to_string(), "expected a value for this attribute: `unchecked_return_type = ...` and it must be a string literal");
+
+        // expected string literal for unchecked_return_type
+        let input = TokenStream::from_str(r#"unchecked_return_type = notStringLiteral"#).unwrap();
+        let seq = Punctuated::<Meta, Token![,]>::parse_terminated
+            .parse2(input)
+            .unwrap();
+        let mut wasm_export_attrs = WasmExportAttrs::default();
+        let err = handle_attrs_sequence(seq, &mut wasm_export_attrs).unwrap_err();
+        assert_eq!(err.to_string(), "expected string literal");
+    }
+}
