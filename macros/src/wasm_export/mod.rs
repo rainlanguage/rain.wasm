@@ -15,7 +15,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     // if the macro was used elsewhere, but this can change as more features and
     // use cases may arrive in future
     match input {
-        Item::Impl(mut impl_item) => impl_block::parse(&mut impl_item, top_attrs),
+        Item::Impl(mut impl_block) => impl_block::parse(&mut impl_block, top_attrs),
         _ => Err(Error::new_spanned(
             &input,
             "unexpected input, wasm_export macro is only applicable to impl blocks",
