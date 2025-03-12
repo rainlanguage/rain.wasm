@@ -1,5 +1,5 @@
 use quote::quote;
-use proc_macro::TokenStream;
+use proc_macro2::TokenStream;
 use super::{tools::*, attrs::*};
 use syn::{
     punctuated::Punctuated, Error, ImplItemFn, Meta, Token, Type, ImplItem, ItemImpl, ReturnType,
@@ -89,7 +89,7 @@ pub fn parse(impl_block: &mut ItemImpl, top_attrs: WasmExportAttrs) -> Result<To
         #export_impl_block
     };
 
-    Ok(output.into())
+    Ok(output)
 }
 
 /// Handles wasm_export macro attributes for a given impl method
@@ -131,6 +131,7 @@ fn handle_method_attrs(method: &mut ImplItemFn) -> Result<(Vec<Meta>, Option<Typ
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proc_macro2::Span;
 
     #[test]
     fn test_handle_method_attrs_happy() {
@@ -187,5 +188,74 @@ mod tests {
             err.to_string(),
             "expected `,` as wasm_export attributes must be delimited by comma"
         );
+    }
+
+    #[test]
+    fn test_parse_happy() {
+        let mut method: ItemImpl = syn::parse_quote!(
+            impl SomeStrcut {
+                #[wasm_export(some_forward_attr, unchecked_return_type = "string")]
+                pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
+                    Ok(SomeType::new())
+                }
+                #[some_external_macro]
+                #[wasm_export(skip)]
+                pub fn some_skip_fn(arg1: String) -> SomeType {
+                    SomeType::new()
+                }
+            }
+        );
+        let result = parse(&mut method, WasmExportAttrs::default()).unwrap();
+        let expected: TokenStream = syn::parse_quote!(
+            impl SomeStrcut {
+                pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
+                    Ok(SomeType::new())
+                }
+                #[some_external_macro]
+                pub fn some_skip_fn(arg1: String) -> SomeType {
+                    SomeType::new()
+                }
+            }
+            #[wasm_bindgen]
+            impl SomeStrcut {
+                #[allow(non_snake_case)]
+                #[wasm_bindgen(some_forward_attr, unchecked_return_type = "WasmEncodedResult<string>")]
+                pub fn some_fn__wasm_export(arg1: String) -> WasmEncodedResult<SomeType> {
+                    Self::some_fn(arg1).into()
+                }
+            }
+        );
+        assert_eq!(result.to_string(), expected.to_string());
+    }
+
+    #[test]
+    fn test_parse_unhappy() {
+        // error for top unchecked_return_type attr
+        let mut method: ItemImpl = syn::parse_quote!(
+            impl SomeStrcut {
+                #[wasm_export(some_forward_attr, unchecked_return_type = "string")]
+                pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
+                    Ok(SomeType::new())
+                }
+            }
+        );
+        let wasm_export_attr = WasmExportAttrs {
+            unchecked_return_type: Some(("string".to_string(), Span::call_site())),
+            ..Default::default()
+        };
+        let err = parse(&mut method, wasm_export_attr).unwrap_err();
+        assert_eq!(err.to_string(), "unexpected `unchecked_return_type` attribute, it can only be used for impl block methods");
+
+        // error for method with non result return type
+        let mut method: ItemImpl = syn::parse_quote!(
+            impl SomeStrcut {
+                #[wasm_export(some_forward_attr, unchecked_return_type = "string")]
+                pub fn some_fn(arg1: String) -> SomeType {
+                    SomeType::new()
+                }
+            }
+        );
+        let err = parse(&mut method, WasmExportAttrs::default()).unwrap_err();
+        assert_eq!(err.to_string(), "expected Result<T, E> return type");
     }
 }

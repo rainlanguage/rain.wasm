@@ -1,5 +1,5 @@
 use syn::{Error, Item};
-use proc_macro::TokenStream;
+use proc_macro2::TokenStream;
 
 mod attrs;
 mod tools;
@@ -8,8 +8,8 @@ mod impl_block;
 /// Starts macro parsing and expansion process by routing the parse towards corresponding
 /// parse logic based on input type
 pub fn expand(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
-    let input = syn::parse(item)?;
-    let top_attrs = syn::parse(attr)?;
+    let input = syn::parse2(item)?;
+    let top_attrs = syn::parse2(attr)?;
 
     // parse the input as an impl block, this will result in an error as intended
     // if the macro was used elsewhere, but this can change as more features and
