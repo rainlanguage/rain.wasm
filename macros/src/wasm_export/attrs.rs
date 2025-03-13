@@ -123,8 +123,8 @@ pub fn handle_attrs_sequence(
 mod tests {
     use super::*;
     use std::str::FromStr;
-    use syn::parse::Parser;
     use proc_macro2::TokenStream;
+    use syn::{parse::Parser, parse_quote};
 
     #[test]
     fn test_wasm_export_attrs_parse() {
@@ -148,8 +148,8 @@ mod tests {
             TokenStream::from_str("some_top_attr, some_other_top_attr = something").unwrap();
         let result: WasmExportAttrs = syn::parse2(stream).unwrap();
         let expected_forward_attrs = vec![
-            syn::parse_quote!(some_top_attr),
-            syn::parse_quote!(some_other_top_attr = something),
+            parse_quote!(some_top_attr),
+            parse_quote!(some_other_top_attr = something),
         ];
         assert!(result.should_skip.is_none());
         assert!(result.unchecked_return_type.is_none());
@@ -158,7 +158,7 @@ mod tests {
 
     #[test]
     fn test_was_export_ret_type_with_override() {
-        let ret_type: ReturnType = syn::parse_quote!(-> Result<SomeType, Error>);
+        let ret_type: ReturnType = parse_quote!(-> Result<SomeType, Error>);
         let mut wasm_export_attrs = WasmExportAttrs {
             forward_attrs: vec![],
             should_skip: None,
@@ -166,11 +166,11 @@ mod tests {
         };
         let result = wasm_export_attrs.handle_return_type(&ret_type).unwrap();
 
-        let expected_type: Type = syn::parse_quote!(SomeType);
+        let expected_type: Type = parse_quote!(SomeType);
         assert_eq!(result, expected_type);
 
         let expected_wasm_export_attrs = WasmExportAttrs {
-            forward_attrs: vec![syn::parse_quote!(
+            forward_attrs: vec![parse_quote!(
                 unchecked_return_type = "WasmEncodedResult<SomeOverrideType>"
             )],
             should_skip: None,
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn test_was_export_ret_type_without_override() {
-        let ret_type: ReturnType = syn::parse_quote!(-> Result<SomeType, Error>);
+        let ret_type: ReturnType = parse_quote!(-> Result<SomeType, Error>);
         let mut wasm_export_attrs = WasmExportAttrs {
             forward_attrs: vec![],
             should_skip: None,
@@ -197,11 +197,11 @@ mod tests {
         };
         let result = wasm_export_attrs.handle_return_type(&ret_type).unwrap();
 
-        let expected_type: Type = syn::parse_quote!(SomeType);
+        let expected_type: Type = parse_quote!(SomeType);
         assert_eq!(result, expected_type);
 
         let expected_wasm_export_attrs = WasmExportAttrs {
-            forward_attrs: vec![syn::parse_quote!(
+            forward_attrs: vec![parse_quote!(
                 unchecked_return_type = "WasmEncodedResult<SomeType>"
             )],
             should_skip: None,
@@ -234,7 +234,7 @@ mod tests {
         );
         assert_eq!(
             wasm_export_attrs.forward_attrs,
-            vec![syn::parse_quote!(some_forward_attr)]
+            vec![parse_quote!(some_forward_attr)]
         );
     }
 

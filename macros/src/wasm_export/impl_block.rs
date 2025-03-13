@@ -131,11 +131,12 @@ fn handle_method_attrs(method: &mut ImplItemFn) -> Result<(Vec<Meta>, Option<Typ
 #[cfg(test)]
 mod tests {
     use super::*;
+    use syn::parse_quote;
     use proc_macro2::Span;
 
     #[test]
     fn test_handle_method_attrs_happy() {
-        let mut method: ImplItemFn = syn::parse_quote!(
+        let mut method: ImplItemFn = parse_quote!(
             #[some_external_macro]
             #[wasm_export(some_forward_attr, unchecked_return_type = "string", skip)]
             pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
@@ -145,19 +146,16 @@ mod tests {
         let result = handle_method_attrs(&mut method).unwrap();
         let expected = (
             vec![
-                syn::parse_quote!(some_forward_attr),
-                syn::parse_quote!(unchecked_return_type = "WasmEncodedResult<string>"),
+                parse_quote!(some_forward_attr),
+                parse_quote!(unchecked_return_type = "WasmEncodedResult<string>"),
             ],
-            Some(syn::parse_quote!(SomeType)),
+            Some(parse_quote!(SomeType)),
             true,
         );
         assert_eq!(result, expected);
-        assert_eq!(
-            method.attrs,
-            vec![syn::parse_quote!(#[some_external_macro])]
-        );
+        assert_eq!(method.attrs, vec![parse_quote!(#[some_external_macro])]);
 
-        let mut method: ImplItemFn = syn::parse_quote!(
+        let mut method: ImplItemFn = parse_quote!(
             #[wasm_export]
             pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
                 Ok(SomeType::new())
@@ -165,10 +163,10 @@ mod tests {
         );
         let result = handle_method_attrs(&mut method).unwrap();
         let expected = (
-            vec![syn::parse_quote!(
+            vec![parse_quote!(
                 unchecked_return_type = "WasmEncodedResult<SomeType>"
             )],
-            Some(syn::parse_quote!(SomeType)),
+            Some(parse_quote!(SomeType)),
             false,
         );
         assert_eq!(result, expected);
@@ -177,7 +175,7 @@ mod tests {
     #[test]
     fn test_handle_method_attrs_unhappy() {
         // bad delimiter
-        let mut method: ImplItemFn = syn::parse_quote!(
+        let mut method: ImplItemFn = parse_quote!(
             #[wasm_export(some_forward_attr; skip)]
             pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
                 Ok(SomeType::new())
@@ -192,7 +190,7 @@ mod tests {
 
     #[test]
     fn test_parse_happy() {
-        let mut method: ItemImpl = syn::parse_quote!(
+        let mut method: ItemImpl = parse_quote!(
             impl SomeStrcut {
                 #[wasm_export(some_forward_attr, unchecked_return_type = "string")]
                 pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
@@ -206,7 +204,7 @@ mod tests {
             }
         );
         let result = parse(&mut method, WasmExportAttrs::default()).unwrap();
-        let expected: TokenStream = syn::parse_quote!(
+        let expected: TokenStream = parse_quote!(
             impl SomeStrcut {
                 pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
                     Ok(SomeType::new())
@@ -231,7 +229,7 @@ mod tests {
     #[test]
     fn test_parse_unhappy() {
         // error for top unchecked_return_type attr
-        let mut method: ItemImpl = syn::parse_quote!(
+        let mut method: ItemImpl = parse_quote!(
             impl SomeStrcut {
                 #[wasm_export(some_forward_attr, unchecked_return_type = "string")]
                 pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
@@ -247,7 +245,7 @@ mod tests {
         assert_eq!(err.to_string(), "unexpected `unchecked_return_type` attribute, it can only be used for impl block methods");
 
         // error for method with non result return type
-        let mut method: ItemImpl = syn::parse_quote!(
+        let mut method: ItemImpl = parse_quote!(
             impl SomeStrcut {
                 #[wasm_export(some_forward_attr, unchecked_return_type = "string")]
                 pub fn some_fn(arg1: String) -> SomeType {

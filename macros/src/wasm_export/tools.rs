@@ -94,8 +94,8 @@ pub fn populate_name(org_fn_ident: &Ident) -> Ident {
 mod tests {
     use super::*;
     use std::str::FromStr;
-    use syn::parse::Parser;
     use proc_macro2::{Span, TokenStream};
+    use syn::{parse::Parser, parse_quote};
 
     #[test]
     fn test_create_function_call() {
@@ -107,7 +107,7 @@ mod tests {
         let fn_name = Ident::new("some_name", Span::call_site());
         let is_async = true;
         let result = create_function_call(&fn_name, &inputs, is_async);
-        let expected: Block = syn::parse_quote!({ Self::some_name((arg1, arg2)).await.into() });
+        let expected: Block = parse_quote!({ Self::some_name((arg1, arg2)).await.into() });
         assert_eq!(result, expected);
 
         // self and non async
@@ -118,7 +118,7 @@ mod tests {
         let fn_name = Ident::new("some_name", Span::call_site());
         let is_async = false;
         let result = create_function_call(&fn_name, &inputs, is_async);
-        let expected: Block = syn::parse_quote!({ self.some_name(arg1, arg2).into() });
+        let expected: Block = parse_quote!({ self.some_name(arg1, arg2).into() });
         assert_eq!(result, expected);
     }
 
@@ -163,29 +163,29 @@ mod tests {
 
     #[test]
     fn test_try_extract_result_inner_type_happy() {
-        let output: ReturnType = syn::parse_quote!(-> Result<SomeType, Error>);
+        let output: ReturnType = parse_quote!(-> Result<SomeType, Error>);
         let result = try_extract_result_inner_type(&output).unwrap();
-        let expected: Type = syn::parse_quote!(SomeType);
+        let expected: Type = parse_quote!(SomeType);
         assert_eq!(*result, expected);
 
-        let output: ReturnType = syn::parse_quote!(-> Result<(), Error>);
+        let output: ReturnType = parse_quote!(-> Result<(), Error>);
         let result = try_extract_result_inner_type(&output).unwrap();
-        let expected: Type = syn::parse_quote!(());
+        let expected: Type = parse_quote!(());
         assert_eq!(*result, expected);
     }
 
     #[test]
     fn test_try_extract_result_inner_type_unhappy() {
-        let output: ReturnType = syn::parse_quote!(-> SomeType);
+        let output: ReturnType = parse_quote!(-> SomeType);
         assert!(try_extract_result_inner_type(&output).is_none());
 
-        let output: ReturnType = syn::parse_quote!(-> Option<SomeType>);
+        let output: ReturnType = parse_quote!(-> Option<SomeType>);
         assert!(try_extract_result_inner_type(&output).is_none());
 
-        let output: ReturnType = syn::parse_quote!(-> ());
+        let output: ReturnType = parse_quote!(-> ());
         assert!(try_extract_result_inner_type(&output).is_none());
 
-        let output: ReturnType = syn::parse_quote!();
+        let output: ReturnType = parse_quote!();
         assert!(try_extract_result_inner_type(&output).is_none());
     }
 
