@@ -157,7 +157,7 @@ mod tests {
     }
 
     #[test]
-    fn test_was_export_ret_type_with_override() {
+    fn test_wasm_export_ret_type_with_override() {
         let ret_type: ReturnType = parse_quote!(-> Result<SomeType, Error>);
         let mut wasm_export_attrs = WasmExportAttrs {
             forward_attrs: vec![],
@@ -188,7 +188,7 @@ mod tests {
     }
 
     #[test]
-    fn test_was_export_ret_type_without_override() {
+    fn test_wasm_export_ret_type_without_override() {
         let ret_type: ReturnType = parse_quote!(-> Result<SomeType, Error>);
         let mut wasm_export_attrs = WasmExportAttrs {
             forward_attrs: vec![],
