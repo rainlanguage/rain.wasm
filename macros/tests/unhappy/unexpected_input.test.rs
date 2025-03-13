@@ -8,9 +8,6 @@ struct TestStruct;
 enum TestEnum {}
 
 #[wasm_export]
-fn test_fn() {}
-
-#[wasm_export]
 type TestType = u8;
 
 #[wasm_export]

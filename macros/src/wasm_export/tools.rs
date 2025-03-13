@@ -11,9 +11,12 @@ pub fn create_function_call(
     fn_name: &Ident,
     inputs: &Punctuated<FnArg, Comma>,
     is_async: bool,
+    is_standalone: bool,
 ) -> Block {
     let (has_self_receiver, args) = collect_function_arguments(inputs);
-    let call_expr = if has_self_receiver {
+    let call_expr = if is_standalone {
+        quote! { #fn_name(#(#args),*) }
+    } else if has_self_receiver {
         // Instance method call
         quote! { self.#fn_name(#(#args),*) }
     } else {
@@ -106,7 +109,8 @@ mod tests {
             .unwrap();
         let fn_name = Ident::new("some_name", Span::call_site());
         let is_async = true;
-        let result = create_function_call(&fn_name, &inputs, is_async);
+        let is_standalone = false;
+        let result = create_function_call(&fn_name, &inputs, is_async, is_standalone);
         let expected: Block = parse_quote!({ Self::some_name((arg1, arg2)).await.into() });
         assert_eq!(result, expected);
 
@@ -117,8 +121,21 @@ mod tests {
             .unwrap();
         let fn_name = Ident::new("some_name", Span::call_site());
         let is_async = false;
-        let result = create_function_call(&fn_name, &inputs, is_async);
+        let is_standalone = false;
+        let result = create_function_call(&fn_name, &inputs, is_async, is_standalone);
         let expected: Block = parse_quote!({ self.some_name(arg1, arg2).into() });
+        assert_eq!(result, expected);
+
+        // standalone async
+        let stream = TokenStream::from_str(r#"&self, arg1: String, arg2: u8"#).unwrap();
+        let inputs = Punctuated::<FnArg, Comma>::parse_terminated
+            .parse2(stream)
+            .unwrap();
+        let fn_name = Ident::new("some_name", Span::call_site());
+        let is_async = true;
+        let is_standalone = true;
+        let result = create_function_call(&fn_name, &inputs, is_async, is_standalone);
+        let expected: Block = parse_quote!({ some_name(arg1, arg2).await.into() });
         assert_eq!(result, expected);
     }
 

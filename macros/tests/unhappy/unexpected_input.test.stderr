@@ -1,41 +1,35 @@
-error: unexpected input, wasm_export macro is only applicable to impl blocks
+error: unexpected input, wasm_export macro is only applicable to impl blocks or standalone functions
  --> tests/unhappy/unexpected_input.test.rs:5:1
   |
 5 | struct TestStruct;
   | ^^^^^^^^^^^^^^^^^^
 
-error: unexpected input, wasm_export macro is only applicable to impl blocks
+error: unexpected input, wasm_export macro is only applicable to impl blocks or standalone functions
  --> tests/unhappy/unexpected_input.test.rs:8:1
   |
 8 | enum TestEnum {}
   | ^^^^^^^^^^^^^^^^
 
-error: unexpected input, wasm_export macro is only applicable to impl blocks
+error: unexpected input, wasm_export macro is only applicable to impl blocks or standalone functions
   --> tests/unhappy/unexpected_input.test.rs:11:1
    |
-11 | fn test_fn() {}
-   | ^^^^^^^^^^^^^^^
-
-error: unexpected input, wasm_export macro is only applicable to impl blocks
-  --> tests/unhappy/unexpected_input.test.rs:14:1
-   |
-14 | type TestType = u8;
+11 | type TestType = u8;
    | ^^^^^^^^^^^^^^^^^^^
 
-error: unexpected input, wasm_export macro is only applicable to impl blocks
-  --> tests/unhappy/unexpected_input.test.rs:17:1
+error: unexpected input, wasm_export macro is only applicable to impl blocks or standalone functions
+  --> tests/unhappy/unexpected_input.test.rs:14:1
    |
-17 | mod test_mod {}
+14 | mod test_mod {}
    | ^^^^^^^^^^^^^^^
 
-error: unexpected input, wasm_export macro is only applicable to impl blocks
-  --> tests/unhappy/unexpected_input.test.rs:20:1
+error: unexpected input, wasm_export macro is only applicable to impl blocks or standalone functions
+  --> tests/unhappy/unexpected_input.test.rs:17:1
    |
-20 | const TEST_COST: u8 = 1;
+17 | const TEST_COST: u8 = 1;
    | ^^^^^^^^^^^^^^^^^^^^^^^^
 
-error: unexpected input, wasm_export macro is only applicable to impl blocks
-  --> tests/unhappy/unexpected_input.test.rs:23:1
+error: unexpected input, wasm_export macro is only applicable to impl blocks or standalone functions
+  --> tests/unhappy/unexpected_input.test.rs:20:1
    |
-23 | static TEST_STATIC: u8 = 1;
+20 | static TEST_STATIC: u8 = 1;
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -11,7 +11,7 @@ pub fn parse(impl_block: &mut ItemImpl, top_attrs: WasmExportAttrs) -> Result<To
     if let Some((_, span)) = top_attrs.unchecked_return_type {
         return Err(Error::new(
             span,
-            "unexpected `unchecked_return_type` attribute, it can only be used for impl block methods",
+            "unexpected `unchecked_return_type` attribute, it can only be used for impl block methods or standalone functions",
         ));
     }
 
@@ -55,6 +55,7 @@ pub fn parse(impl_block: &mut ItemImpl, top_attrs: WasmExportAttrs) -> Result<To
                         org_fn_ident,
                         &method.sig.inputs,
                         method.sig.asyncness.is_some(),
+                        false,
                     );
 
                     export_items.push(ImplItem::Fn(export_method));
@@ -242,7 +243,7 @@ mod tests {
             ..Default::default()
         };
         let err = parse(&mut method, wasm_export_attr).unwrap_err();
-        assert_eq!(err.to_string(), "unexpected `unchecked_return_type` attribute, it can only be used for impl block methods");
+        assert_eq!(err.to_string(), "unexpected `unchecked_return_type` attribute, it can only be used for impl block methods or standalone functions");
 
         // error for method with non result return type
         let mut method: ItemImpl = parse_quote!(
