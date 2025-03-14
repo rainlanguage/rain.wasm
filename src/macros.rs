@@ -30,12 +30,12 @@ macro_rules! impl_main_wasm_traits {
         impl$(<$($generics),+>)? $type_name$(<$($generics),+>)?
         $(where $($generics: serde::Serialize + for<'de> serde::Deserialize<'de>, )+ )? {
             const TYPE_NAME: &'static str = stringify!($type_name);
-            /// A simple helpful warpper for serde_wasm_bindgen::to_value
+            /// A simple helpful wrapper for serde_wasm_bindgen::to_value
             /// as self method for easy accessible conversion
             pub fn try_into_js_value(&self) -> Result<$crate::prelude::JsValue, $crate::prelude::serde_wasm_bindgen::Error> {
                 $crate::prelude::to_js_value(&self)
             }
-            /// A simple helpful warpper for serde_wasm_bindgen::from_value
+            /// A simple helpful wrapper for serde_wasm_bindgen::from_value
             /// as Self method for easy accessible conversion
             pub fn try_from_js_value(js: $crate::prelude::JsValue) -> Result<Self, $crate::prelude::serde_wasm_bindgen::Error> {
                 $crate::prelude::from_js_value(js)
@@ -356,9 +356,9 @@ mod tests {
         assert!(field2_key.js_in(&res));
         assert!(Reflect::get(&res, &field2_key)
             .unwrap()
-            .is_instance_of::<js_sys::Uint8Array>(),);
+            .is_instance_of::<js_sys::Uint8Array>());
         assert!(field3_key.js_in(&res));
-        assert!(Reflect::get(&res, &field3_key).unwrap().is_object(),);
+        assert!(Reflect::get(&res, &field3_key).unwrap().is_object());
 
         // should not exist
         assert!(!JsString::from_str("field4").unwrap().js_in(&res));
@@ -372,7 +372,7 @@ mod tests {
     impl_wasm_traits!(B<T, E>);
     impl_custom_tsify!(
         B<T, E>,
-        "export interface A<T, E> {
+        "export interface B<T, E> {
             field1: T;
             field2: E;
         };"
