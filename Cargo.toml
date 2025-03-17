@@ -31,5 +31,5 @@ macrotest = "1.0"
 trybuild = "1.0"
 
 [workspace.dependencies.wasm-bindgen-utils-macros]
-path = "./macros"
+path = "macros"
 version = "=0.0.1"
