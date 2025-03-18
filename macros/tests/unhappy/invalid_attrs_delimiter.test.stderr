@@ -1,0 +1,29 @@
+error: expected `,` as wasm_export attributes must be delimited by comma
+ --> tests/unhappy/invalid_attrs_delimiter.test.rs:8:23
+  |
+8 |     #[wasm_export(skip; unchecked_return_type = "string")]
+  |                       ^
+
+error: expected `,` as wasm_export attributes must be delimited by comma
+  --> tests/unhappy/invalid_attrs_delimiter.test.rs:16:24
+   |
+16 |     #[wasm_export(skip - unchecked_return_type = "string")]
+   |                        ^
+
+error: expected `,` as wasm_export attributes must be delimited by comma
+  --> tests/unhappy/invalid_attrs_delimiter.test.rs:24:23
+   |
+24 |     #[wasm_export(skip. unchecked_return_type = "string")]
+   |                       ^
+
+error: expected `,` as wasm_export attributes must be delimited by comma
+  --> tests/unhappy/invalid_attrs_delimiter.test.rs:32:23
+   |
+32 |     #[wasm_export(skip/ unchecked_return_type = "string")]
+   |                       ^
+
+error: expected `,` as wasm_export attributes must be delimited by comma
+  --> tests/unhappy/invalid_attrs_delimiter.test.rs:40:24
+   |
+40 |     #[wasm_export(skip unchecked_return_type = "string")]
+   |                        ^^^^^^^^^^^^^^^^^^^^^
