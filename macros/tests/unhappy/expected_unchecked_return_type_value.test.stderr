@@ -1,0 +1,5 @@
+error: expected a value for this attribute: `unchecked_return_type = ...` and it must be a string literal
+ --> tests/unhappy/expected_unchecked_return_type_value.test.rs:8:19
+  |
+8 |     #[wasm_export(unchecked_return_type)]
+  |                   ^^^^^^^^^^^^^^^^^^^^^

@@ -1,0 +1,5 @@
+error: unexpected `skip` attribute, it is only valid for methods of an impl block
+ --> tests/unhappy/unexpected_skip.test.rs:6:15
+  |
+6 | #[wasm_export(skip)]
+  |               ^^^^

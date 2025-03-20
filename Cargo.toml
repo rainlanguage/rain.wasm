@@ -2,7 +2,7 @@
 name = "wasm-bindgen-utils"
 description = "Provides utilities and helpers that make working with wasm-bindgen easy"
 edition = "2021"
-license = "CAL-1.0"
+license = "LicenseRef-DCL-1.0"
 version = "0.0.6"
 homepage = "https://github.com/rainlanguage/rain.wasm"
 
@@ -14,9 +14,22 @@ serde-wasm-bindgen = { version = "0.6" }
 wasm-bindgen-futures = { version = "0.4" }
 serde = { version = "1.0", features = ["derive", "rc"] }
 tsify = { version = "0.4", default-features = false, features = ["js", "wasm-bindgen"] }
+wasm-bindgen-utils-macros = { workspace = true }
 
 [dev-dependencies]
 serde_test = "1"
 wasm-bindgen-test = "0.3"
+macrotest = { workspace = true }
+trybuild = { workspace = true }
+
+[workspace]
+members = ["macros"]
+resolver = "2"
+
+[workspace.dependencies]
 macrotest = "1.0"
 trybuild = "1.0"
+
+[workspace.dependencies.wasm-bindgen-utils-macros]
+path = "macros"
+version = "=0.0.1"
