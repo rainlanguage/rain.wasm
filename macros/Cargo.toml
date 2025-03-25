@@ -1,0 +1,19 @@
+[package]
+name = "wasm-bindgen-utils-macros"
+version = "0.0.1"
+edition = "2021"
+license = "LicenseRef-DCL-1.0"
+description = "Provides helper proc macros for wasm-bindgen-utils"
+homepage = "https://github.com/rainlanguage/rain.wasm"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "1.0"
+proc-macro2 = "1.0"
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+
+[dev-dependencies]
+macrotest = { workspace = true }
+trybuild = { workspace = true }

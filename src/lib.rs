@@ -51,8 +51,10 @@
 
 mod ser;
 pub mod macros;
+pub mod result;
 
 pub use ser::*;
+pub use wasm_bindgen_utils_macros::*;
 
 // prelude exports
 pub mod prelude {
@@ -65,4 +67,6 @@ pub mod prelude {
     pub use tsify::Tsify;
     pub use wasm_bindgen::prelude::*;
     pub use serde_wasm_bindgen::{to_value as to_js_value, from_value as from_js_value};
+    pub use wasm_bindgen_utils_macros::*;
+    pub use super::result::*;
 }

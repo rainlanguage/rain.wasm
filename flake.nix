@@ -45,7 +45,23 @@
           name = "rainix-wasm-test";
           body = ''
             set -euxo pipefail
-            CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER='wasm-bindgen-test-runner' cargo test --target wasm32-unknown-unknown
+            CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER='wasm-bindgen-test-runner' cargo test --target wasm32-unknown-unknown --workspace
+          '';
+        };
+
+        rainix-rs-test = rainix.mkTask.${system} {
+          name = "rainix-rs-test";
+          body = ''
+            set -euxo pipefail
+            cargo test --workspace
+          '';
+        };
+
+        rainix-rs-artifacts = rainix.mkTask.${system} {
+          name = "rainix-rs-artifacts";
+          body = ''
+            set -euxo pipefail
+            cargo build --release --workspace
           '';
         };
       };
@@ -55,6 +71,8 @@
         packages = [
           packages.rainix-wasm-artifacts
           packages.rainix-wasm-test
+          packages.rainix-rs-test
+          packages.rainix-rs-artifacts
           cargo-expand
         ];
         buildInputs = rainix.devShells.${system}.default.buildInputs;
