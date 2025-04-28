@@ -36,9 +36,9 @@ pub fn create_function_call_unified(
         }
         FunctionContext::Standalone => {
             if has_self_receiver {
-                 return syn::parse_quote!({
-                     compile_error!("Standalone functions cannot have a 'self' receiver")
-                 });
+                return syn::parse_quote!({
+                    compile_error!("Standalone functions cannot have a 'self' receiver")
+                });
             }
             quote! { #fn_name(#(#args),*) }
         }
@@ -129,7 +129,8 @@ mod tests {
             .unwrap();
         let fn_name = Ident::new("some_name", Span::call_site());
         let is_async = true;
-        let result = create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Method);
+        let result =
+            create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Method);
         // Expected: Self::some_name(arg1, arg2).await.into() -> Note: parse_quote! needs parentheses around tuple args
         let expected: Block = parse_quote!({ Self::some_name((arg1, arg2)).await.into() });
         assert_eq!(format!("{:?}", result), format!("{:?}", expected)); // Compare string representation for complex Block types
@@ -143,12 +144,13 @@ mod tests {
             .unwrap();
         let fn_name = Ident::new("some_name", Span::call_site());
         let is_async = false;
-        let result = create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Method);
+        let result =
+            create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Method);
         let expected: Block = parse_quote!({ self.some_name(arg1, arg2).into() });
-         assert_eq!(format!("{:?}", result), format!("{:?}", expected));
+        assert_eq!(format!("{:?}", result), format!("{:?}", expected));
     }
 
-     #[test]
+    #[test]
     fn test_create_function_call_unified_standalone_sync() {
         let stream = TokenStream::from_str(r#"arg1: String, arg2: u8"#).unwrap();
         let inputs = Punctuated::<FnArg, Comma>::parse_terminated
@@ -156,9 +158,10 @@ mod tests {
             .unwrap();
         let fn_name = Ident::new("some_standalone_fn", Span::call_site());
         let is_async = false;
-        let result = create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Standalone);
+        let result =
+            create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Standalone);
         let expected: Block = parse_quote!({ some_standalone_fn(arg1, arg2).into() });
-         assert_eq!(format!("{:?}", result), format!("{:?}", expected));
+        assert_eq!(format!("{:?}", result), format!("{:?}", expected));
     }
 
     #[test]
@@ -169,12 +172,13 @@ mod tests {
             .unwrap();
         let fn_name = Ident::new("another_standalone", Span::call_site());
         let is_async = true;
-        let result = create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Standalone);
+        let result =
+            create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Standalone);
         let expected: Block = parse_quote!({ another_standalone(arg1).await.into() });
         assert_eq!(format!("{:?}", result), format!("{:?}", expected));
     }
 
-     #[test]
+    #[test]
     fn test_create_function_call_unified_standalone_with_self_error() {
         // This test verifies that providing a 'self' receiver with Standalone context triggers compile error
         let stream = TokenStream::from_str(r#"&self, arg1: String"#).unwrap();
@@ -183,11 +187,12 @@ mod tests {
             .unwrap();
         let fn_name = Ident::new("standalone_error_fn", Span::call_site());
         let is_async = false;
-        let result = create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Standalone);
-        let expected: Block = parse_quote!({ compile_error!("Standalone functions cannot have a 'self' receiver") });
-         assert_eq!(format!("{:?}", result), format!("{:?}", expected));
+        let result =
+            create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Standalone);
+        let expected: Block =
+            parse_quote!({ compile_error!("Standalone functions cannot have a 'self' receiver") });
+        assert_eq!(format!("{:?}", result), format!("{:?}", expected));
     }
-
 
     #[test]
     fn test_collect_function_arguments() {
