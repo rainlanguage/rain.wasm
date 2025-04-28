@@ -32,6 +32,28 @@ pub fn create_function_call(
     }
 }
 
+/// Creates a function call expression for a standalone function.
+pub fn create_standalone_function_call(
+    fn_name: &Ident,
+    inputs: &Punctuated<FnArg, Comma>,
+    is_async: bool,
+) -> Block {
+    // Standalone functions never have a 'self' receiver in the context of the call itself
+    let (_, args) = collect_function_arguments(inputs);
+    // Direct function call using its identifier
+    let call_expr = quote! { #fn_name(#(#args),*) };
+
+    if is_async {
+        syn::parse_quote!({
+            #call_expr.await.into()
+        })
+    } else {
+        syn::parse_quote!({
+            #call_expr.into()
+        })
+    }
+}
+
 /// Collects function arguments and determines if the function has a self receiver
 pub fn collect_function_arguments(inputs: &Punctuated<FnArg, Comma>) -> (bool, Vec<TokenStream>) {
     let mut has_self_receiver = false;
