@@ -6,6 +6,11 @@ use super::{
     tools::{create_standalone_function_call, extend_err_msg, populate_name},
 };
 
+/// 1. Attributes to forward to wasm_bindgen.
+/// 2. Optional unchecked return type override (Type name, Span).
+/// 3. Boolean indicating if the function should be skipped.
+type FnAttrsResult = (Vec<Meta>, Option<(String, Span)>, bool);
+
 /// Parses a standalone function and generates the wasm exported function
 pub fn parse(func: &mut ItemFn, mut top_attrs: WasmExportAttrs) -> Result<TokenStream, Error> {
     // 1. Handle function-level attributes
@@ -79,11 +84,11 @@ pub fn parse(func: &mut ItemFn, mut top_attrs: WasmExportAttrs) -> Result<TokenS
 
 /// Handles wasm_export macro attributes for a standalone function.
 /// This is similar to `handle_method_attrs` but adapted for ItemFn.
-fn handle_fn_attrs(func: &mut ItemFn) -> Result<(Vec<Meta>, Option<(String, Span)>, bool), Error> {
+fn handle_fn_attrs(func: &mut ItemFn) -> Result<FnAttrsResult, Error> {
     let mut keep_indices = Vec::new();
     let mut wasm_export_attrs = WasmExportAttrs::default();
 
-    for (_, attr) in func.attrs.iter().enumerate() {
+    for attr in func.attrs.iter() {
         if attr.path().is_ident(AttrKeys::WASM_EXPORT) {
             // Skip parsing if there are no nested attributes (e.g., #[wasm_export])
             if !matches!(attr.meta, Meta::Path(_)) {
