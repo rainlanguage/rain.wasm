@@ -3,7 +3,7 @@ use proc_macro2::{Span, TokenStream};
 use syn::{punctuated::Punctuated, Error, ItemFn, Meta, ReturnType, Token};
 use super::{
     attrs::{handle_attrs_sequence, AttrKeys, WasmExportAttrs},
-    tools::{create_standalone_function_call, extend_err_msg, populate_name},
+    tools::{create_function_call_unified, extend_err_msg, populate_name, FunctionContext},
 };
 
 /// 1. Attributes to forward to wasm_bindgen.
@@ -66,10 +66,11 @@ pub fn parse(func: &mut ItemFn, mut top_attrs: WasmExportAttrs) -> Result<TokenS
     export_fn.sig.output = syn::parse_quote!(-> WasmEncodedResult<#original_return_type>);
 
     // Set export function body to call the original function
-    export_fn.block = Box::new(create_standalone_function_call(
+    export_fn.block = Box::new(create_function_call_unified(
         original_fn_ident,
         &func.sig.inputs,
         func.sig.asyncness.is_some(), // Pass true if original fn is async
+        FunctionContext::Standalone,
     ));
 
     // 4. Combine original and exported function tokens

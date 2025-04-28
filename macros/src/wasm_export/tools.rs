@@ -6,43 +6,45 @@ use syn::{
     ReturnType, Type, TypePath,
 };
 
-/// Creates a function call expression based on whether it's an instance or static method
-pub fn create_function_call(
-    fn_name: &Ident,
-    inputs: &Punctuated<FnArg, Comma>,
-    is_async: bool,
-) -> Block {
-    let (has_self_receiver, args) = collect_function_arguments(inputs);
-    let call_expr = if has_self_receiver {
-        // Instance method call
-        quote! { self.#fn_name(#(#args),*) }
-    } else {
-        // Static method call
-        quote! { Self::#fn_name(#(#args),*) }
-    };
-
-    if is_async {
-        syn::parse_quote!({
-            #call_expr.await.into()
-        })
-    } else {
-        syn::parse_quote!({
-            #call_expr.into()
-        })
-    }
+/// Enum to specify the context of the function call
+pub enum FunctionContext {
+    /// Function is a method within an impl block (can be instance or static)
+    Method,
+    /// Function is a standalone function (outside any impl block)
+    Standalone,
 }
 
-/// Creates a function call expression for a standalone function.
-pub fn create_standalone_function_call(
+/// Creates a function call expression based on the context (method or standalone)
+/// and whether it's async or takes a 'self' receiver.
+pub fn create_function_call_unified(
     fn_name: &Ident,
     inputs: &Punctuated<FnArg, Comma>,
     is_async: bool,
+    context: FunctionContext,
 ) -> Block {
-    // Standalone functions never have a 'self' receiver in the context of the call itself
-    let (_, args) = collect_function_arguments(inputs);
-    // Direct function call using its identifier
-    let call_expr = quote! { #fn_name(#(#args),*) };
+    let (has_self_receiver, args) = collect_function_arguments(inputs);
 
+    let call_expr = match context {
+        FunctionContext::Method => {
+            if has_self_receiver {
+                // Instance method call: self.method_name(...)
+                quote! { self.#fn_name(#(#args),*) }
+            } else {
+                // Static method call: Self::method_name(...)
+                quote! { Self::#fn_name(#(#args),*) }
+            }
+        }
+        FunctionContext::Standalone => {
+            if has_self_receiver {
+                 return syn::parse_quote!({
+                     compile_error!("Standalone functions cannot have a 'self' receiver")
+                 });
+            }
+            quote! { #fn_name(#(#args),*) }
+        }
+    };
+
+    // Append .await if the function is async, and .into() in all cases
     if is_async {
         syn::parse_quote!({
             #call_expr.await.into()
@@ -120,29 +122,72 @@ mod tests {
     use syn::{parse::Parser, parse_quote};
 
     #[test]
-    fn test_create_function_call() {
-        // static and async
+    fn test_create_function_call_unified_static_method_async() {
         let stream = TokenStream::from_str(r#"(arg1, arg2): (String, u8)"#).unwrap();
         let inputs = Punctuated::<FnArg, Comma>::parse_terminated
             .parse2(stream)
             .unwrap();
         let fn_name = Ident::new("some_name", Span::call_site());
         let is_async = true;
-        let result = create_function_call(&fn_name, &inputs, is_async);
+        let result = create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Method);
+        // Expected: Self::some_name(arg1, arg2).await.into() -> Note: parse_quote! needs parentheses around tuple args
         let expected: Block = parse_quote!({ Self::some_name((arg1, arg2)).await.into() });
-        assert_eq!(result, expected);
+        assert_eq!(format!("{:?}", result), format!("{:?}", expected)); // Compare string representation for complex Block types
+    }
 
-        // self and non async
+    #[test]
+    fn test_create_function_call_unified_instance_method_sync() {
         let stream = TokenStream::from_str(r#"&self, arg1: String, arg2: u8"#).unwrap();
         let inputs = Punctuated::<FnArg, Comma>::parse_terminated
             .parse2(stream)
             .unwrap();
         let fn_name = Ident::new("some_name", Span::call_site());
         let is_async = false;
-        let result = create_function_call(&fn_name, &inputs, is_async);
+        let result = create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Method);
         let expected: Block = parse_quote!({ self.some_name(arg1, arg2).into() });
-        assert_eq!(result, expected);
+         assert_eq!(format!("{:?}", result), format!("{:?}", expected));
     }
+
+     #[test]
+    fn test_create_function_call_unified_standalone_sync() {
+        let stream = TokenStream::from_str(r#"arg1: String, arg2: u8"#).unwrap();
+        let inputs = Punctuated::<FnArg, Comma>::parse_terminated
+            .parse2(stream)
+            .unwrap();
+        let fn_name = Ident::new("some_standalone_fn", Span::call_site());
+        let is_async = false;
+        let result = create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Standalone);
+        let expected: Block = parse_quote!({ some_standalone_fn(arg1, arg2).into() });
+         assert_eq!(format!("{:?}", result), format!("{:?}", expected));
+    }
+
+    #[test]
+    fn test_create_function_call_unified_standalone_async() {
+        let stream = TokenStream::from_str(r#"arg1: i32"#).unwrap();
+        let inputs = Punctuated::<FnArg, Comma>::parse_terminated
+            .parse2(stream)
+            .unwrap();
+        let fn_name = Ident::new("another_standalone", Span::call_site());
+        let is_async = true;
+        let result = create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Standalone);
+        let expected: Block = parse_quote!({ another_standalone(arg1).await.into() });
+        assert_eq!(format!("{:?}", result), format!("{:?}", expected));
+    }
+
+     #[test]
+    fn test_create_function_call_unified_standalone_with_self_error() {
+        // This test verifies that providing a 'self' receiver with Standalone context triggers compile error
+        let stream = TokenStream::from_str(r#"&self, arg1: String"#).unwrap();
+        let inputs = Punctuated::<FnArg, Comma>::parse_terminated
+            .parse2(stream)
+            .unwrap();
+        let fn_name = Ident::new("standalone_error_fn", Span::call_site());
+        let is_async = false;
+        let result = create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Standalone);
+        let expected: Block = parse_quote!({ compile_error!("Standalone functions cannot have a 'self' receiver") });
+         assert_eq!(format!("{:?}", result), format!("{:?}", expected));
+    }
+
 
     #[test]
     fn test_collect_function_arguments() {

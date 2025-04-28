@@ -51,10 +51,11 @@ pub fn parse(impl_block: &mut ItemImpl, top_attrs: WasmExportAttrs) -> Result<To
                         syn::parse_quote!(-> WasmEncodedResult<#return_type>);
 
                     // call the original method as body of the exported method
-                    export_method.block = create_function_call(
+                    export_method.block = create_function_call_unified(
                         org_fn_ident,
                         &method.sig.inputs,
                         method.sig.asyncness.is_some(),
+                        FunctionContext::Method,
                     );
 
                     export_items.push(ImplItem::Fn(export_method));
