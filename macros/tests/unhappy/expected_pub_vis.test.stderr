@@ -1,0 +1,11 @@
+error: expected pub visibility
+ --> tests/unhappy/expected_pub_vis.test.rs:5:1
+  |
+5 | fn some_fn(arg: String) -> Result<String, Error> {
+  | ^^
+
+error: expected pub visibility
+  --> tests/unhappy/expected_pub_vis.test.rs:10:1
+   |
+10 | pub(crate) fn some_other_fn(arg: String) -> Result<String, Error> {
+   | ^^^^^^^^^^
