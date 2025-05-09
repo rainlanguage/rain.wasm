@@ -1,4 +1,4 @@
-error: unexpected `unchecked_return_type` attribute, it can only be used for impl block methods
+error: unexpected `unchecked_return_type` attribute, it can only be used for impl block methods or standalone functions
  --> tests/unhappy/unexpected_unchecked_ret_type_attr.test.rs:6:15
   |
 6 | #[wasm_export(unchecked_return_type = "string")]
