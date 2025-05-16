@@ -89,7 +89,7 @@ mod tests {
                 Ok(a.len() as u32)
             }
         );
-        let mut top_attrs = WasmExportAttrs::default(); // No top-level attrs
+        let top_attrs = WasmExportAttrs::default(); // No top-level attrs
         let result = parse(&mut func, top_attrs).unwrap();
 
         let expected: TokenStream = parse_quote!(
