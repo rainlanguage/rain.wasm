@@ -2,7 +2,8 @@ use syn::{Error, Item};
 use proc_macro2::TokenStream;
 
 mod attrs;
-mod tools;
+mod error;
+mod builder;
 mod impl_block;
 mod standalone_fn;
 
