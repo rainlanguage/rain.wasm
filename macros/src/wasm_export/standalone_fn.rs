@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use syn::{Error, ItemFn, ReturnType, Visibility};
 use super::{
     attrs::WasmExportAttrs,
-    tools::{
+    builder::{
         build_export_function_body, populate_name, BuildExportFunctionBodyContext, FunctionType,
     },
 };
