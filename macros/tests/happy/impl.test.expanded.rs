@@ -14,6 +14,17 @@ impl TestStruct {
     pub async fn some_self_method(&self, arg: String) -> Result<TestStruct, Error> {
         Ok(TestStruct)
     }
+    pub async fn some_method_preserve_class_async(
+        arg: String,
+    ) -> Result<TestStruct, Error> {
+        Ok(TestStruct)
+    }
+    pub fn some_method_preserve_class_sync(
+        &self,
+        arg: String,
+    ) -> Result<TestStruct, Error> {
+        Ok(TestStruct)
+    }
 }
 #[wasm_bindgen]
 impl TestStruct {
@@ -39,6 +50,54 @@ impl TestStruct {
         arg: String,
     ) -> WasmEncodedResult<TestStruct> {
         self.some_self_method(arg).await.into()
+    }
+    #[allow(non_snake_case)]
+    #[wasm_bindgen(
+        js_name = "someMethodPreserveClassAsync",
+        unchecked_return_type = "WasmEncodedResult<TestStruct>"
+    )]
+    pub async fn some_method_preserve_class_async__wasm_export(arg: String) -> JsValue {
+        use std::str::FromStr;
+        use js_sys::{Reflect, Object};
+        let obj = Object::new();
+        let result = Self::some_method_preserve_class_async(arg).await.into();
+        match result {
+            Ok(value) => {
+                Reflect::set(&obj, &JsValue::from_str("value"), &value.into()).unwrap();
+                Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED)
+                    .unwrap();
+            }
+            Err(error) => {
+                Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED)
+                    .unwrap();
+                Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+            }
+        };
+        obj.into()
+    }
+    #[allow(non_snake_case)]
+    #[wasm_bindgen(
+        js_name = "someMethodPreserveClassSync",
+        unchecked_return_type = "WasmEncodedResult<TestStruct>"
+    )]
+    pub fn some_method_preserve_class_sync__wasm_export(&self, arg: String) -> JsValue {
+        use std::str::FromStr;
+        use js_sys::{Reflect, Object};
+        let obj = Object::new();
+        let result = self.some_method_preserve_class_sync(arg).into();
+        match result {
+            Ok(value) => {
+                Reflect::set(&obj, &JsValue::from_str("value"), &value.into()).unwrap();
+                Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED)
+                    .unwrap();
+            }
+            Err(error) => {
+                Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED)
+                    .unwrap();
+                Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+            }
+        };
+        obj.into()
     }
 }
 impl TestStruct {

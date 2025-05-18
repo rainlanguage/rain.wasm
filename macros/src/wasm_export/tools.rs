@@ -2,30 +2,44 @@ use quote::quote;
 use std::ops::Deref;
 use proc_macro2::TokenStream;
 use syn::{
-    punctuated::Punctuated, token::Comma, Block, Error, FnArg, Ident, Path, PathSegment,
-    ReturnType, Type, TypePath,
+    punctuated::Punctuated, token::Comma, Block, Error, FnArg, Ident, ImplItemFn, ItemFn, Path,
+    PathSegment, ReturnType, Type, TypePath,
 };
 
-/// Enum to specify the context of the function call
-pub enum FunctionContext {
+/// Enum to specify the type of the function
+pub enum FunctionContext<'a> {
     /// Function is a method within an impl block (can be instance or static)
-    Method,
-    /// Function is a standalone function (outside any impl block)
-    Standalone,
+    Method(&'a ImplItemFn),
+    /// Function is a standalone (outside any impl block)
+    Standalone(&'a ItemFn),
 }
 
 /// Creates a function call expression based on the context (method or standalone)
 /// and whether it's async or takes a 'self' receiver.
 pub fn create_function_call_unified(
-    fn_name: &Ident,
-    inputs: &Punctuated<FnArg, Comma>,
-    is_async: bool,
-    context: FunctionContext,
+    function_context: FunctionContext,
+    preserve_js_class: bool,
 ) -> Block {
-    let (has_self_receiver, args) = collect_function_arguments(inputs);
+    // destructure the method's/function's name, args and asyncness
+    let (fn_name, fn_args, is_async) = match function_context {
+        FunctionContext::Method(method) => (
+            &method.sig.ident,
+            &method.sig.inputs,
+            method.sig.asyncness.is_some(),
+        ),
+        FunctionContext::Standalone(function) => (
+            &function.sig.ident,
+            &function.sig.inputs,
+            function.sig.asyncness.is_some(),
+        ),
+    };
 
-    let call_expr = match context {
-        FunctionContext::Method => {
+    // collect arguments
+    let (has_self_receiver, args) = collect_function_arguments(fn_args);
+
+    // create call expression from the original
+    let call_expr = match function_context {
+        FunctionContext::Method(_) => {
             if has_self_receiver {
                 // Instance method call: self.method_name(...)
                 quote! { self.#fn_name(#(#args),*) }
@@ -34,24 +48,60 @@ pub fn create_function_call_unified(
                 quote! { Self::#fn_name(#(#args),*) }
             }
         }
-        FunctionContext::Standalone => {
-            if has_self_receiver {
-                return syn::parse_quote!({
-                    compile_error!("Standalone functions cannot have a 'self' receiver")
-                });
-            }
+        FunctionContext::Standalone(_) => {
             quote! { #fn_name(#(#args),*) }
         }
     };
 
-    // Append .await if the function is async, and .into() in all cases
-    if is_async {
+    // append .await if the function is async, and .into() in
+    // all cases to convert rust Result to WasmEncodedResult
+    let expression = if is_async {
+        quote!( #call_expr.await.into() )
+    } else {
+        quote!( #call_expr.into() )
+    };
+
+    // manually build a js obj that resembles the WasmEncodedResult to preserve
+    // the class if preserve_js_class attr was detected and return it as JsValue
+    // otherwise return the call expression unchanged
+    if preserve_js_class {
         syn::parse_quote!({
-            #call_expr.await.into()
+            // bring necessary items in scope
+            use std::str::FromStr;
+            use js_sys::{Reflect, Object};
+
+            // create empty js obj
+            let obj = Object::new();
+
+            // call the expression and proceed based on its result
+            //
+            // populate "value" field with class instance and "error" field with undefined if
+            // result is Ok and vice versa if result is Err, this js obj will resemble the
+            // WasmEncodedResult (that normally is serialized through serde_wasm_bindgen which
+            // results in plain js objects for nested types) type in js/ts with preserving the
+            // class instance for value field
+            //
+            // "Reflect::set" can only fail if the obj is sealed or frozen which is not the case
+            // here, so it is safe to use unwrap, "Reflect::set" is similar to "obj[key] = value"
+            // in js, for more info read MDN docs for Reflect
+            let result = #expression;
+            match result {
+                Ok(value) => {
+                    Reflect::set(&obj, &JsValue::from_str("value"), &value.into()).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED).unwrap();
+                }
+                Err(error) => {
+                    Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                }
+            };
+
+            // return as JsValue
+            obj.into()
         })
     } else {
         syn::parse_quote!({
-            #call_expr.into()
+            #expression
         })
     }
 }
@@ -122,76 +172,231 @@ mod tests {
     use syn::{parse::Parser, parse_quote};
 
     #[test]
-    fn test_create_function_call_unified_static_method_async() {
-        let stream = TokenStream::from_str(r#"(arg1, arg2): (String, u8)"#).unwrap();
-        let inputs = Punctuated::<FnArg, Comma>::parse_terminated
-            .parse2(stream)
-            .unwrap();
-        let fn_name = Ident::new("some_name", Span::call_site());
-        let is_async = true;
-        let result =
-            create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Method);
-        // Expected: Self::some_name(arg1, arg2).await.into() -> Note: parse_quote! needs parentheses around tuple args
+    fn test_build_body_method_async() {
+        // async method static
+        let method: ImplItemFn = parse_quote!(
+            pub async fn some_name((arg1, arg2): (String, u8)) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+        );
+        let result = create_function_call_unified(FunctionContext::Method(&method), false);
         let expected: Block = parse_quote!({ Self::some_name((arg1, arg2)).await.into() });
-        assert_eq!(format!("{:?}", result), format!("{:?}", expected)); // Compare string representation for complex Block types
+        assert_eq!(result, expected);
+
+        // async method with self
+        let method: ImplItemFn = parse_quote!(
+            pub async fn some_name(&self, (arg1, arg2): (String, u8)) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+        );
+        let result = create_function_call_unified(FunctionContext::Method(&method), false);
+        let expected: Block = parse_quote!({ self.some_name((arg1, arg2)).await.into() });
+        assert_eq!(result, expected);
+
+        // async method static with preserve class
+        let method: ImplItemFn = parse_quote!(
+            pub async fn some_name((arg1, arg2): (String, u8)) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+        );
+        let result = create_function_call_unified(FunctionContext::Method(&method), true);
+        let expected: Block = parse_quote!({
+            use std::str::FromStr;
+            use js_sys::{Reflect, Object};
+            let obj = Object::new();
+            let result = Self::some_name((arg1, arg2)).await.into();
+            match result {
+                Ok(value) => {
+                    Reflect::set(&obj, &JsValue::from_str("value"), &value.into()).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED).unwrap();
+                }
+                Err(error) => {
+                    Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                }
+            };
+            obj.into()
+        });
+        assert_eq!(result, expected);
+
+        // async method self with preserve class
+        let method: ImplItemFn = parse_quote!(
+            pub async fn some_name(&self, (arg1, arg2): (String, u8)) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+        );
+        let result = create_function_call_unified(FunctionContext::Method(&method), true);
+        let expected: Block = parse_quote!({
+            use std::str::FromStr;
+            use js_sys::{Reflect, Object};
+            let obj = Object::new();
+            let result = self.some_name((arg1, arg2)).await.into();
+            match result {
+                Ok(value) => {
+                    Reflect::set(&obj, &JsValue::from_str("value"), &value.into()).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED).unwrap();
+                }
+                Err(error) => {
+                    Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                }
+            };
+            obj.into()
+        });
+        assert_eq!(result, expected);
     }
 
     #[test]
-    fn test_create_function_call_unified_instance_method_sync() {
-        let stream = TokenStream::from_str(r#"&self, arg1: String, arg2: u8"#).unwrap();
-        let inputs = Punctuated::<FnArg, Comma>::parse_terminated
-            .parse2(stream)
-            .unwrap();
-        let fn_name = Ident::new("some_name", Span::call_site());
-        let is_async = false;
-        let result =
-            create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Method);
-        let expected: Block = parse_quote!({ self.some_name(arg1, arg2).into() });
-        assert_eq!(format!("{:?}", result), format!("{:?}", expected));
+    fn test_build_body_method_sync() {
+        // sync method static
+        let method: ImplItemFn = parse_quote!(
+            pub fn some_name((arg1, arg2): (String, u8)) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+        );
+        let result = create_function_call_unified(FunctionContext::Method(&method), false);
+        let expected: Block = parse_quote!({ Self::some_name((arg1, arg2)).into() });
+        assert_eq!(result, expected);
+
+        // sync method with self
+        let method: ImplItemFn = parse_quote!(
+            pub fn some_name(&self, (arg1, arg2): (String, u8)) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+        );
+        let result = create_function_call_unified(FunctionContext::Method(&method), false);
+        let expected: Block = parse_quote!({ self.some_name((arg1, arg2)).into() });
+        assert_eq!(result, expected);
+
+        // sync method static with preserve class
+        let method: ImplItemFn = parse_quote!(
+            pub fn some_name((arg1, arg2): (String, u8)) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+        );
+        let result = create_function_call_unified(FunctionContext::Method(&method), true);
+        let expected: Block = parse_quote!({
+            use std::str::FromStr;
+            use js_sys::{Reflect, Object};
+            let obj = Object::new();
+            let result = Self::some_name((arg1, arg2)).into();
+            match result {
+                Ok(value) => {
+                    Reflect::set(&obj, &JsValue::from_str("value"), &value.into()).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED).unwrap();
+                }
+                Err(error) => {
+                    Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                }
+            };
+            obj.into()
+        });
+        assert_eq!(result, expected);
+
+        // sync method self with preserve class
+        let method: ImplItemFn = parse_quote!(
+            pub fn some_name(&self, (arg1, arg2): (String, u8)) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+        );
+        let result = create_function_call_unified(FunctionContext::Method(&method), true);
+        let expected: Block = parse_quote!({
+            use std::str::FromStr;
+            use js_sys::{Reflect, Object};
+            let obj = Object::new();
+            let result = self.some_name((arg1, arg2)).into();
+            match result {
+                Ok(value) => {
+                    Reflect::set(&obj, &JsValue::from_str("value"), &value.into()).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED).unwrap();
+                }
+                Err(error) => {
+                    Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                }
+            };
+            obj.into()
+        });
+        assert_eq!(result, expected);
     }
 
     #[test]
-    fn test_create_function_call_unified_standalone_sync() {
-        let stream = TokenStream::from_str(r#"arg1: String, arg2: u8"#).unwrap();
-        let inputs = Punctuated::<FnArg, Comma>::parse_terminated
-            .parse2(stream)
-            .unwrap();
-        let fn_name = Ident::new("some_standalone_fn", Span::call_site());
-        let is_async = false;
-        let result =
-            create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Standalone);
-        let expected: Block = parse_quote!({ some_standalone_fn(arg1, arg2).into() });
-        assert_eq!(format!("{:?}", result), format!("{:?}", expected));
+    fn test_build_body_standalone_function_async() {
+        // async function
+        let function: ItemFn = parse_quote!(
+            pub async fn some_name((arg1, arg2): (String, u8)) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+        );
+        let result = create_function_call_unified(FunctionContext::Standalone(&function), false);
+        let expected: Block = parse_quote!({ some_name((arg1, arg2)).await.into() });
+        assert_eq!(result, expected);
+
+        // async function with preserve class
+        let function: ItemFn = parse_quote!(
+            pub async fn some_name((arg1, arg2): (String, u8)) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+        );
+        let result = create_function_call_unified(FunctionContext::Standalone(&function), true);
+        let expected: Block = parse_quote!({
+            use std::str::FromStr;
+            use js_sys::{Reflect, Object};
+            let obj = Object::new();
+            let result = some_name((arg1, arg2)).await.into();
+            match result {
+                Ok(value) => {
+                    Reflect::set(&obj, &JsValue::from_str("value"), &value.into()).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED).unwrap();
+                }
+                Err(error) => {
+                    Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                }
+            };
+            obj.into()
+        });
+        assert_eq!(result, expected);
     }
 
     #[test]
-    fn test_create_function_call_unified_standalone_async() {
-        let stream = TokenStream::from_str(r#"arg1: i32"#).unwrap();
-        let inputs = Punctuated::<FnArg, Comma>::parse_terminated
-            .parse2(stream)
-            .unwrap();
-        let fn_name = Ident::new("another_standalone", Span::call_site());
-        let is_async = true;
-        let result =
-            create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Standalone);
-        let expected: Block = parse_quote!({ another_standalone(arg1).await.into() });
-        assert_eq!(format!("{:?}", result), format!("{:?}", expected));
-    }
+    fn test_build_body_standalone_function_sync() {
+        // sync function
+        let function: ItemFn = parse_quote!(
+            pub fn some_name((arg1, arg2): (String, u8)) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+        );
+        let result = create_function_call_unified(FunctionContext::Standalone(&function), false);
+        let expected: Block = parse_quote!({ some_name((arg1, arg2)).into() });
+        assert_eq!(result, expected);
 
-    #[test]
-    fn test_create_function_call_unified_standalone_with_self_error() {
-        // This test verifies that providing a 'self' receiver with Standalone context triggers compile error
-        let stream = TokenStream::from_str(r#"&self, arg1: String"#).unwrap();
-        let inputs = Punctuated::<FnArg, Comma>::parse_terminated
-            .parse2(stream)
-            .unwrap();
-        let fn_name = Ident::new("standalone_error_fn", Span::call_site());
-        let is_async = false;
-        let result =
-            create_function_call_unified(&fn_name, &inputs, is_async, FunctionContext::Standalone);
-        let expected: Block =
-            parse_quote!({ compile_error!("Standalone functions cannot have a 'self' receiver") });
-        assert_eq!(format!("{:?}", result), format!("{:?}", expected));
+        // sync function with preserve class
+        let function: ItemFn = parse_quote!(
+            pub fn some_name((arg1, arg2): (String, u8)) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+        );
+        let result = create_function_call_unified(FunctionContext::Standalone(&function), true);
+        let expected: Block = parse_quote!({
+            use std::str::FromStr;
+            use js_sys::{Reflect, Object};
+            let obj = Object::new();
+            let result = some_name((arg1, arg2)).into();
+            match result {
+                Ok(value) => {
+                    Reflect::set(&obj, &JsValue::from_str("value"), &value.into()).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED).unwrap();
+                }
+                Err(error) => {
+                    Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                }
+            };
+            obj.into()
+        });
+        assert_eq!(result, expected);
     }
 
     #[test]

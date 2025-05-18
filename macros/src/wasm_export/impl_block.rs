@@ -1,17 +1,21 @@
 use quote::quote;
 use proc_macro2::TokenStream;
 use super::{tools::*, attrs::*};
-use syn::{
-    punctuated::Punctuated, Error, ImplItemFn, Meta, Token, Type, ImplItem, ItemImpl, ReturnType,
-};
+use syn::{punctuated::Punctuated, Error, ImplItemFn, Meta, Token, ImplItem, ItemImpl, ReturnType};
 
 /// Parses an entire impl block methods and generates the wasm exported impl block with all the expected methods
 pub fn parse(impl_block: &mut ItemImpl, top_attrs: WasmExportAttrs) -> Result<TokenStream, Error> {
-    // bail early if invalid attribute was identified
+    // bail early if invalid attributes were identified
     if let Some((_, span)) = top_attrs.unchecked_return_type {
         return Err(Error::new(
             span,
             "unexpected `unchecked_return_type` attribute, it can only be used for impl block methods or standalone functions",
+        ));
+    }
+    if let Some(span) = top_attrs.preserve_js_class {
+        return Err(Error::new(
+            span,
+            "unexpected `preserve_js_class` attribute, it can only be used for impl block methods or standalone functions",
         ));
     }
 
@@ -23,10 +27,19 @@ pub fn parse(impl_block: &mut ItemImpl, top_attrs: WasmExportAttrs) -> Result<To
             // process the method only if its visibility is pub
             if let syn::Visibility::Public(_) = method.vis {
                 // process method attributes
-                let (forward_attrs, return_type, should_skip) = handle_method_attrs(method)?;
-                if should_skip {
+                let mut wasm_export_attrs = handle_method_attrs(method)?;
+
+                // skip this method if skip attr was detected
+                if wasm_export_attrs.should_skip.is_some() {
                     continue;
                 }
+
+                let return_type = wasm_export_attrs.handle_return_type(&method.sig.output);
+                let WasmExportAttrs {
+                    forward_attrs,
+                    preserve_js_class,
+                    ..
+                } = wasm_export_attrs;
 
                 // items included for exporting must all have Result<> return type
                 if let Some(return_type) = return_type {
@@ -46,16 +59,19 @@ pub fn parse(impl_block: &mut ItemImpl, top_attrs: WasmExportAttrs) -> Result<To
                         ));
                     }
 
-                    // set exported method return type as WasmEncodedResult
-                    export_method.sig.output =
-                        syn::parse_quote!(-> WasmEncodedResult<#return_type>);
+                    // set exported method return type as JsValue if
+                    // preserve_js_class is true else set it to WasmEncodedResult
+                    if preserve_js_class.is_some() {
+                        export_method.sig.output = syn::parse_quote!(-> JsValue);
+                    } else {
+                        export_method.sig.output =
+                            syn::parse_quote!(-> WasmEncodedResult<#return_type>);
+                    }
 
                     // call the original method as body of the exported method
                     export_method.block = create_function_call_unified(
-                        org_fn_ident,
-                        &method.sig.inputs,
-                        method.sig.asyncness.is_some(),
-                        FunctionContext::Method,
+                        FunctionContext::Method(method),
+                        preserve_js_class.is_some(),
                     );
 
                     export_items.push(ImplItem::Fn(export_method));
@@ -93,8 +109,8 @@ pub fn parse(impl_block: &mut ItemImpl, top_attrs: WasmExportAttrs) -> Result<To
     Ok(output)
 }
 
-/// Handles wasm_export macro attributes for a given impl method
-fn handle_method_attrs(method: &mut ImplItemFn) -> Result<(Vec<Meta>, Option<Type>, bool), Error> {
+// Handles wasm_export macro attributes for a given impl method
+pub fn handle_method_attrs(method: &mut ImplItemFn) -> Result<WasmExportAttrs, Error> {
     // start parsing nested attributes of this method
     let mut keep = Vec::new();
     let mut wasm_export_attrs = WasmExportAttrs::default();
@@ -107,7 +123,7 @@ fn handle_method_attrs(method: &mut ImplItemFn) -> Result<(Vec<Meta>, Option<Typ
                     .map_err(extend_err_msg(
                         " as wasm_export attributes must be delimited by comma",
                     ))?;
-                handle_attrs_sequence(nested_seq, &mut wasm_export_attrs)?;
+                wasm_export_attrs.handle_attrs_sequence(nested_seq)?;
             }
             keep.push(false);
         } else {
@@ -119,14 +135,7 @@ fn handle_method_attrs(method: &mut ImplItemFn) -> Result<(Vec<Meta>, Option<Typ
     let mut keep = keep.into_iter();
     method.attrs.retain(|_| keep.next().unwrap_or(true));
 
-    // handle return type
-    let ret_type = wasm_export_attrs.handle_return_type(&method.sig.output);
-
-    Ok((
-        wasm_export_attrs.forward_attrs,
-        ret_type,
-        wasm_export_attrs.should_skip.is_some(),
-    ))
+    Ok(wasm_export_attrs)
 }
 
 #[cfg(test)]
@@ -145,15 +154,8 @@ mod tests {
             }
         );
         let result = handle_method_attrs(&mut method).unwrap();
-        let expected = (
-            vec![
-                parse_quote!(some_forward_attr),
-                parse_quote!(unchecked_return_type = "WasmEncodedResult<string>"),
-            ],
-            Some(parse_quote!(SomeType)),
-            true,
-        );
-        assert_eq!(result, expected);
+        assert_eq!(result.forward_attrs, vec![parse_quote!(some_forward_attr),]);
+        assert!(result.unchecked_return_type.is_some());
         assert_eq!(method.attrs, vec![parse_quote!(#[some_external_macro])]);
 
         let mut method: ImplItemFn = parse_quote!(
@@ -163,14 +165,8 @@ mod tests {
             }
         );
         let result = handle_method_attrs(&mut method).unwrap();
-        let expected = (
-            vec![parse_quote!(
-                unchecked_return_type = "WasmEncodedResult<SomeType>"
-            )],
-            Some(parse_quote!(SomeType)),
-            false,
-        );
-        assert_eq!(result, expected);
+        assert_eq!(result.forward_attrs, vec![]);
+        assert!(result.unchecked_return_type.is_none());
     }
 
     #[test]
@@ -228,6 +224,49 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_happy_with_preserve_js_class() {
+        let mut method: ItemImpl = parse_quote!(
+            impl SomeStrcut {
+                #[wasm_export(preserve_js_class)]
+                pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
+                    Ok(SomeType::new())
+                }
+            }
+        );
+        let result = parse(&mut method, WasmExportAttrs::default()).unwrap();
+        let expected: TokenStream = parse_quote!(
+            impl SomeStrcut {
+                pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
+                    Ok(SomeType::new())
+                }
+            }
+            #[wasm_bindgen]
+            impl SomeStrcut {
+                #[allow(non_snake_case)]
+                #[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<SomeType>")]
+                pub fn some_fn__wasm_export(arg1: String) -> JsValue {
+                    use std::str::FromStr;
+                    use js_sys::{Reflect, Object};
+                    let obj = Object::new();
+                    let result = Self::some_fn(arg1).into();
+                    match result {
+                        Ok(value) => {
+                            Reflect::set(&obj, &JsValue::from_str("value"), &value.into()).unwrap();
+                            Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED).unwrap();
+                        }
+                        Err(error) => {
+                            Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED).unwrap();
+                            Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                        }
+                    };
+                    obj.into()
+                }
+            }
+        );
+        assert_eq!(result.to_string(), expected.to_string());
+    }
+
+    #[test]
     fn test_parse_unhappy() {
         // error for top unchecked_return_type attr
         let mut method: ItemImpl = parse_quote!(
@@ -244,6 +283,22 @@ mod tests {
         };
         let err = parse(&mut method, wasm_export_attr).unwrap_err();
         assert_eq!(err.to_string(), "unexpected `unchecked_return_type` attribute, it can only be used for impl block methods or standalone functions");
+
+        // error for top preserve_js_class attr
+        let mut method: ItemImpl = parse_quote!(
+            impl SomeStrcut {
+                #[wasm_export(some_forward_attr, preserve_js_class = "string")]
+                pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
+                    Ok(SomeType::new())
+                }
+            }
+        );
+        let wasm_export_attr = WasmExportAttrs {
+            preserve_js_class: Some(Span::call_site()),
+            ..Default::default()
+        };
+        let err = parse(&mut method, wasm_export_attr).unwrap_err();
+        assert_eq!(err.to_string(), "unexpected `preserve_js_class` attribute, it can only be used for impl block methods or standalone functions");
 
         // error for method with non result return type
         let mut method: ItemImpl = parse_quote!(

@@ -34,7 +34,11 @@ pub fn parse(func: &mut ItemFn, mut top_attrs: WasmExportAttrs) -> Result<TokenS
     // functions cannot have function level attrs like impl blocks do,
     // they only have top level attrs which comes from entry point macro
     // and they are not available as part of function level attrs
-    let WasmExportAttrs { forward_attrs, .. } = top_attrs;
+    let WasmExportAttrs {
+        forward_attrs,
+        preserve_js_class,
+        ..
+    } = top_attrs;
 
     // 3. Create the export function
     let original_fn_ident = &func.sig.ident;
@@ -55,15 +59,18 @@ pub fn parse(func: &mut ItemFn, mut top_attrs: WasmExportAttrs) -> Result<TokenS
         export_fn.attrs.push(syn::parse_quote!(#[wasm_bindgen]));
     }
 
-    // Set export function return type to WasmEncodedResult<T>
-    export_fn.sig.output = syn::parse_quote!(-> WasmEncodedResult<#original_return_type>);
+    // set exported function return type as JsValue if
+    // preserve_js_class is true else set it to WasmEncodedResult
+    if preserve_js_class.is_some() {
+        export_fn.sig.output = syn::parse_quote!(-> JsValue);
+    } else {
+        export_fn.sig.output = syn::parse_quote!(-> WasmEncodedResult<#original_return_type>);
+    }
 
     // Set export function body to call the original function
     export_fn.block = Box::new(create_function_call_unified(
-        original_fn_ident,
-        &func.sig.inputs,
-        func.sig.asyncness.is_some(), // Pass true if original fn is async
-        FunctionContext::Standalone,
+        FunctionContext::Standalone(func), // Pass true if original fn is async
+        preserve_js_class.is_some(),
     ));
 
     // 4. Combine original and exported function tokens
@@ -182,6 +189,7 @@ mod tests {
             should_skip: None,
             forward_attrs: vec![parse_quote!(some_forward_attr)],
             unchecked_return_type: Some(("string".to_string(), Span::call_site())),
+            preserve_js_class: None,
         };
         let result = parse(&mut method, wasm_export_attrs).unwrap();
         let expected: TokenStream = parse_quote!(
@@ -190,6 +198,45 @@ mod tests {
             #[wasm_bindgen(some_forward_attr, unchecked_return_type = "WasmEncodedResult<string>")]
             pub async fn some_fn__wasm_export(arg1: String) -> WasmEncodedResult<SomeType> {
                 some_fn(arg1).await.into()
+            }
+        );
+        assert_eq!(result.to_string(), expected.to_string());
+    }
+
+    #[test]
+    fn test_parse_happy_with_preserve_js_class() {
+        let mut func: ItemFn = parse_quote!(
+            pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+        );
+        let mut wasm_export_attrs = WasmExportAttrs::default();
+        wasm_export_attrs.preserve_js_class = Some(Span::call_site());
+        let result = parse(&mut func, wasm_export_attrs).unwrap();
+        let expected: TokenStream = parse_quote!(
+            pub fn some_fn(arg1: String) -> Result<SomeType, Error> {
+                Ok(SomeType::new())
+            }
+            #[allow(non_snake_case)]
+            #[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<SomeType>")]
+            pub fn some_fn__wasm_export(arg1: String) -> JsValue {
+                use std::str::FromStr;
+                use js_sys::{Reflect, Object};
+                let obj = Object::new();
+                let result = some_fn(arg1).into();
+                match result {
+                    Ok(value) => {
+                        Reflect::set(&obj, &JsValue::from_str("value"), &value.into()).unwrap();
+                        Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED)
+                            .unwrap();
+                    }
+                    Err(error) => {
+                        Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED)
+                            .unwrap();
+                        Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                    }
+                };
+                obj.into()
             }
         );
         assert_eq!(result.to_string(), expected.to_string());

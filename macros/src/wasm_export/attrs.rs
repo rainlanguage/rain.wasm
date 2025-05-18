@@ -14,6 +14,7 @@ pub struct AttrKeys;
 impl AttrKeys {
     pub const SKIP: &'static str = "skip";
     pub const WASM_EXPORT: &'static str = "wasm_export";
+    pub const PRESERVE_JS_CLASS: &'static str = "preserve_js_class";
     pub const UNCHECKED_RETURN_TYPE: &'static str = "unchecked_return_type";
 }
 
@@ -23,6 +24,7 @@ pub struct WasmExportAttrs {
     pub forward_attrs: Vec<Meta>,
     pub unchecked_return_type: Option<(String, Span)>,
     pub should_skip: Option<Span>,
+    pub preserve_js_class: Option<Span>,
 }
 
 impl Parse for WasmExportAttrs {
@@ -37,7 +39,7 @@ impl Parse for WasmExportAttrs {
         let attrs_seq = Punctuated::<Meta, Token![,]>::parse_terminated(input).map_err(
             extend_err_msg(" as wasm_export attributes must be delimited by comma"),
         )?;
-        handle_attrs_sequence(attrs_seq, &mut wasm_export_attrs)?;
+        wasm_export_attrs.handle_attrs_sequence(attrs_seq)?;
 
         // skip cannot be used as top attributes since it is only
         // valid for skipping over methods inside of an impl block
@@ -77,46 +79,59 @@ impl WasmExportAttrs {
 
         return_type
     }
-}
 
-/// Handles wasm_export specified sequence of attributes delimited by comma
-pub fn handle_attrs_sequence(
-    metas: Punctuated<Meta, Comma>,
-    wasm_export_attrs: &mut WasmExportAttrs,
-) -> Result<(), Error> {
-    for meta in metas {
-        if meta.path().is_ident(AttrKeys::UNCHECKED_RETURN_TYPE) {
-            if wasm_export_attrs.unchecked_return_type.is_some() {
-                return Err(Error::new_spanned(
-                    meta,
-                    "duplicate `unchecked_return_type` attribute",
-                ));
-            } else if let syn::Expr::Lit(syn::ExprLit {
-                lit: syn::Lit::Str(str),
-                ..
-            }) = &meta
-                .require_name_value()
-                .map_err(extend_err_msg(" and it must be a string literal"))?
-                .value
-            {
-                wasm_export_attrs.unchecked_return_type = Some((str.value(), meta.span()));
-            } else {
-                return Err(Error::new_spanned(meta, "expected string literal"));
+    /// Handles wasm_export specified sequence of attributes delimited by comma
+    pub fn handle_attrs_sequence(&mut self, metas: Punctuated<Meta, Comma>) -> Result<(), Error> {
+        for meta in metas {
+            match meta.path().get_ident().map(ToString::to_string).as_deref() {
+                Some(AttrKeys::UNCHECKED_RETURN_TYPE) => {
+                    if self.unchecked_return_type.is_some() {
+                        return Err(Error::new_spanned(
+                            meta,
+                            "duplicate `unchecked_return_type` attribute",
+                        ));
+                    } else if let syn::Expr::Lit(syn::ExprLit {
+                        lit: syn::Lit::Str(str),
+                        ..
+                    }) = &meta
+                        .require_name_value()
+                        .map_err(extend_err_msg(" and it must be a string literal"))?
+                        .value
+                    {
+                        self.unchecked_return_type = Some((str.value(), meta.span()));
+                    } else {
+                        return Err(Error::new_spanned(meta, "expected string literal"));
+                    }
+                }
+                Some(AttrKeys::SKIP) => {
+                    if self.should_skip.is_some() {
+                        return Err(Error::new_spanned(meta, "duplicate `skip` attribute"));
+                    }
+                    meta.require_path_only().map_err(extend_err_msg(
+                        ", `skip` attribute does not take any extra tokens or arguments",
+                    ))?;
+                    self.should_skip = Some(meta.span());
+                }
+                Some(AttrKeys::PRESERVE_JS_CLASS) => {
+                    if self.preserve_js_class.is_some() {
+                        return Err(Error::new_spanned(
+                            meta,
+                            "duplicate `preserve_js_class` attribute",
+                        ));
+                    }
+                    meta.require_path_only().map_err(extend_err_msg(
+                    ", `preserve_js_class` attribute does not take any extra tokens or arguments",
+                ))?;
+                    self.preserve_js_class = Some(meta.span());
+                }
+                _ => {
+                    // include unchanged to be forwarded to the corresponding export item
+                    self.forward_attrs.push(meta);
+                }
             }
-        } else if meta.path().is_ident(AttrKeys::SKIP) {
-            if wasm_export_attrs.should_skip.is_some() {
-                return Err(Error::new_spanned(meta, "duplicate `skip` attribute"));
-            }
-            meta.require_path_only().map_err(extend_err_msg(
-                ", `skip` attribute does not take any extra tokens or arguments",
-            ))?;
-            wasm_export_attrs.should_skip = Some(meta.span());
-        } else {
-            // include unchanged to be forwarded to the corresponding export item
-            wasm_export_attrs.forward_attrs.push(meta);
         }
+        Ok(())
     }
-    Ok(())
 }
 
 #[cfg(test)]
@@ -134,6 +149,7 @@ mod tests {
         assert!(result.should_skip.is_none());
         assert!(result.forward_attrs.is_empty());
         assert!(result.unchecked_return_type.is_none());
+        assert!(result.preserve_js_class.is_none());
 
         // only skip attr
         let stream = TokenStream::from_str("skip").unwrap();
@@ -144,8 +160,10 @@ mod tests {
         );
 
         // mixed
-        let stream =
-            TokenStream::from_str("some_top_attr, some_other_top_attr = something").unwrap();
+        let stream = TokenStream::from_str(
+            "some_top_attr, some_other_top_attr = something, preserve_js_class",
+        )
+        .unwrap();
         let result: WasmExportAttrs = syn::parse2(stream).unwrap();
         let expected_forward_attrs = vec![
             parse_quote!(some_top_attr),
@@ -153,6 +171,7 @@ mod tests {
         ];
         assert!(result.should_skip.is_none());
         assert!(result.unchecked_return_type.is_none());
+        assert!(result.preserve_js_class.is_some());
         assert_eq!(result.forward_attrs, expected_forward_attrs);
     }
 
@@ -163,6 +182,7 @@ mod tests {
             forward_attrs: vec![],
             should_skip: None,
             unchecked_return_type: Some(("SomeOverrideType".to_string(), Span::call_site())),
+            preserve_js_class: None,
         };
         let result = wasm_export_attrs.handle_return_type(&ret_type).unwrap();
 
@@ -175,6 +195,7 @@ mod tests {
             )],
             should_skip: None,
             unchecked_return_type: Some(("SomeOverrideType".to_string(), Span::call_site())),
+            preserve_js_class: None,
         };
         assert!(wasm_export_attrs.should_skip.is_none());
         assert_eq!(
@@ -194,6 +215,7 @@ mod tests {
             forward_attrs: vec![],
             should_skip: None,
             unchecked_return_type: None,
+            preserve_js_class: None,
         };
         let result = wasm_export_attrs.handle_return_type(&ret_type).unwrap();
 
@@ -206,6 +228,7 @@ mod tests {
             )],
             should_skip: None,
             unchecked_return_type: None,
+            preserve_js_class: None,
         };
         assert!(wasm_export_attrs.should_skip.is_none());
         assert!(wasm_export_attrs.unchecked_return_type.is_none());
@@ -219,14 +242,14 @@ mod tests {
     fn test_handle_attrs_sequence_happy() {
         // parse a mixed seq of attrs
         let input = TokenStream::from_str(
-            r#"skip, unchecked_return_type = "something", some_forward_attr"#,
+            r#"skip, unchecked_return_type = "something", some_forward_attr, preserve_js_class"#,
         )
         .unwrap();
         let seq = Punctuated::<Meta, Token![,]>::parse_terminated
             .parse2(input)
             .unwrap();
         let mut wasm_export_attrs = WasmExportAttrs::default();
-        handle_attrs_sequence(seq, &mut wasm_export_attrs).unwrap();
+        wasm_export_attrs.handle_attrs_sequence(seq).unwrap();
         assert!(wasm_export_attrs.should_skip.is_some());
         assert_eq!(
             wasm_export_attrs.unchecked_return_type.unwrap().0,
@@ -236,6 +259,7 @@ mod tests {
             wasm_export_attrs.forward_attrs,
             vec![parse_quote!(some_forward_attr)]
         );
+        assert!(wasm_export_attrs.preserve_js_class.is_some());
     }
 
     #[test]
@@ -246,7 +270,7 @@ mod tests {
             .parse2(input)
             .unwrap();
         let mut wasm_export_attrs = WasmExportAttrs::default();
-        let err = handle_attrs_sequence(seq, &mut wasm_export_attrs).unwrap_err();
+        let err = wasm_export_attrs.handle_attrs_sequence(seq).unwrap_err();
         assert_eq!(err.to_string(), "duplicate `skip` attribute");
 
         // dup unchecked_return_type
@@ -258,11 +282,20 @@ mod tests {
             .parse2(input)
             .unwrap();
         let mut wasm_export_attrs = WasmExportAttrs::default();
-        let err = handle_attrs_sequence(seq, &mut wasm_export_attrs).unwrap_err();
+        let err = wasm_export_attrs.handle_attrs_sequence(seq).unwrap_err();
         assert_eq!(
             err.to_string(),
             "duplicate `unchecked_return_type` attribute"
         );
+
+        // dup preserve_js_class
+        let input = TokenStream::from_str(r#"preserve_js_class, preserve_js_class"#).unwrap();
+        let seq = Punctuated::<Meta, Token![,]>::parse_terminated
+            .parse2(input)
+            .unwrap();
+        let mut wasm_export_attrs = WasmExportAttrs::default();
+        let err = wasm_export_attrs.handle_attrs_sequence(seq).unwrap_err();
+        assert_eq!(err.to_string(), "duplicate `preserve_js_class` attribute");
 
         // invalid skip
         let input = TokenStream::from_str(r#"skip = something"#).unwrap();
@@ -270,7 +303,7 @@ mod tests {
             .parse2(input)
             .unwrap();
         let mut wasm_export_attrs = WasmExportAttrs::default();
-        let err = handle_attrs_sequence(seq, &mut wasm_export_attrs).unwrap_err();
+        let err = wasm_export_attrs.handle_attrs_sequence(seq).unwrap_err();
         assert_eq!(err.to_string(), "unexpected token in attribute, `skip` attribute does not take any extra tokens or arguments");
 
         // invalid unchecked_return_type
@@ -279,8 +312,17 @@ mod tests {
             .parse2(input)
             .unwrap();
         let mut wasm_export_attrs = WasmExportAttrs::default();
-        let err = handle_attrs_sequence(seq, &mut wasm_export_attrs).unwrap_err();
+        let err = wasm_export_attrs.handle_attrs_sequence(seq).unwrap_err();
         assert_eq!(err.to_string(), "expected a value for this attribute: `unchecked_return_type = ...` and it must be a string literal");
+
+        // invalid preserve_js_class
+        let input = TokenStream::from_str(r#"preserve_js_class = something"#).unwrap();
+        let seq = Punctuated::<Meta, Token![,]>::parse_terminated
+            .parse2(input)
+            .unwrap();
+        let mut wasm_export_attrs = WasmExportAttrs::default();
+        let err = wasm_export_attrs.handle_attrs_sequence(seq).unwrap_err();
+        assert_eq!(err.to_string(), "unexpected token in attribute, `preserve_js_class` attribute does not take any extra tokens or arguments");
 
         // expected string literal for unchecked_return_type
         let input = TokenStream::from_str(r#"unchecked_return_type = notStringLiteral"#).unwrap();
@@ -288,7 +330,7 @@ mod tests {
             .parse2(input)
             .unwrap();
         let mut wasm_export_attrs = WasmExportAttrs::default();
-        let err = handle_attrs_sequence(seq, &mut wasm_export_attrs).unwrap_err();
+        let err = wasm_export_attrs.handle_attrs_sequence(seq).unwrap_err();
         assert_eq!(err.to_string(), "expected string literal");
     }
 }
