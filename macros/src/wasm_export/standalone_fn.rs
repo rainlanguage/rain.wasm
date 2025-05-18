@@ -69,7 +69,7 @@ pub fn parse(func: &mut ItemFn, mut top_attrs: WasmExportAttrs) -> Result<TokenS
 
     // Set export function body to call the original function
     export_fn.block = Box::new(create_function_call_unified(
-        FunctionContext::Standalone(func), // Pass true if original fn is async
+        FunctionContext::Standalone(func),
         preserve_js_class.is_some(),
     ));
 
