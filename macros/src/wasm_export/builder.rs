@@ -11,12 +11,6 @@ pub enum FunctionType<'a> {
     Standalone(&'a ItemFn),
 }
 
-/// Holds the required context for building the export method/function body
-pub struct BuildExportFunctionBodyContext<'a> {
-    pub function_type: FunctionType<'a>,
-    pub preserve_js_class: bool,
-}
-
 /// Configuration for building a wasm export function
 pub struct WasmExportFunctionBuilderConfig {
     pub forward_attrs: Vec<Meta>,
@@ -64,10 +58,10 @@ impl WasmExportFunctionBuilder {
         }
 
         // build the method body by calling the original method
-        export_method.block = Self::build_export_function_body(BuildExportFunctionBodyContext {
-            function_type: FunctionType::Method(method),
-            preserve_js_class: preserve_js_class.is_some(),
-        });
+        export_method.block = Self::build_export_function_body(
+            FunctionType::Method(method),
+            preserve_js_class.is_some(),
+        );
 
         export_method
     }
@@ -110,19 +104,20 @@ impl WasmExportFunctionBuilder {
 
         // build the function body by calling the original function
         export_fn.block = Box::new(Self::build_export_function_body(
-            BuildExportFunctionBodyContext {
-                function_type: FunctionType::Standalone(func),
-                preserve_js_class: preserve_js_class.is_some(),
-            },
+            FunctionType::Standalone(func),
+            preserve_js_class.is_some(),
         ));
 
         export_fn
     }
 
     /// Creates a function call expression based on the given context (method or standalone)
-    pub fn build_export_function_body(context: BuildExportFunctionBodyContext) -> Block {
+    pub fn build_export_function_body(
+        function_type: FunctionType,
+        preserve_js_class: bool,
+    ) -> Block {
         // destructure the method's/function's name, args and asyncness
-        let (fn_name, fn_args, is_async) = match context.function_type {
+        let (fn_name, fn_args, is_async) = match function_type {
             FunctionType::Method(method) => (
                 &method.sig.ident,
                 &method.sig.inputs,
@@ -139,7 +134,7 @@ impl WasmExportFunctionBuilder {
         let (has_self_receiver, args) = Self::collect_function_arguments(fn_args);
 
         // create call expression from the original
-        let call_expr = match context.function_type {
+        let call_expr = match function_type {
             FunctionType::Method(_) => {
                 if has_self_receiver {
                     // Instance method call: self.method_name(...)
@@ -165,7 +160,7 @@ impl WasmExportFunctionBuilder {
         // manually build a js obj that resembles the WasmEncodedResult to preserve
         // the class if preserve_js_class attr was detected and return it as JsValue
         // otherwise return the call expression unchanged
-        if context.preserve_js_class {
+        if preserve_js_class {
             syn::parse_quote!({
                 // bring necessary items in scope
                 use std::str::FromStr;
@@ -367,11 +362,10 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let context = BuildExportFunctionBodyContext {
-            function_type: FunctionType::Method(&method),
-            preserve_js_class: false,
-        };
-        let result = WasmExportFunctionBuilder::build_export_function_body(context);
+        let result = WasmExportFunctionBuilder::build_export_function_body(
+            FunctionType::Method(&method),
+            false,
+        );
         let expected: Block = parse_quote!({ Self::some_name((arg1, arg2)).await.into() });
         assert_eq!(result, expected);
 
@@ -381,11 +375,10 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let context = BuildExportFunctionBodyContext {
-            function_type: FunctionType::Method(&method),
-            preserve_js_class: false,
-        };
-        let result = WasmExportFunctionBuilder::build_export_function_body(context);
+        let result = WasmExportFunctionBuilder::build_export_function_body(
+            FunctionType::Method(&method),
+            false,
+        );
         let expected: Block = parse_quote!({ self.some_name((arg1, arg2)).await.into() });
         assert_eq!(result, expected);
 
@@ -395,11 +388,10 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let context = BuildExportFunctionBodyContext {
-            function_type: FunctionType::Method(&method),
-            preserve_js_class: true,
-        };
-        let result = WasmExportFunctionBuilder::build_export_function_body(context);
+        let result = WasmExportFunctionBuilder::build_export_function_body(
+            FunctionType::Method(&method),
+            true,
+        );
         let expected: Block = parse_quote!({
             use std::str::FromStr;
             use js_sys::{Reflect, Object};
@@ -425,11 +417,10 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let context = BuildExportFunctionBodyContext {
-            function_type: FunctionType::Method(&method),
-            preserve_js_class: true,
-        };
-        let result = WasmExportFunctionBuilder::build_export_function_body(context);
+        let result = WasmExportFunctionBuilder::build_export_function_body(
+            FunctionType::Method(&method),
+            true,
+        );
         let expected: Block = parse_quote!({
             use std::str::FromStr;
             use js_sys::{Reflect, Object};
@@ -458,11 +449,10 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let context = BuildExportFunctionBodyContext {
-            function_type: FunctionType::Method(&method),
-            preserve_js_class: false,
-        };
-        let result = WasmExportFunctionBuilder::build_export_function_body(context);
+        let result = WasmExportFunctionBuilder::build_export_function_body(
+            FunctionType::Method(&method),
+            false,
+        );
         let expected: Block = parse_quote!({ Self::some_name((arg1, arg2)).into() });
         assert_eq!(result, expected);
 
@@ -472,11 +462,10 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let context = BuildExportFunctionBodyContext {
-            function_type: FunctionType::Method(&method),
-            preserve_js_class: false,
-        };
-        let result = WasmExportFunctionBuilder::build_export_function_body(context);
+        let result = WasmExportFunctionBuilder::build_export_function_body(
+            FunctionType::Method(&method),
+            false,
+        );
         let expected: Block = parse_quote!({ self.some_name((arg1, arg2)).into() });
         assert_eq!(result, expected);
 
@@ -486,11 +475,10 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let context = BuildExportFunctionBodyContext {
-            function_type: FunctionType::Method(&method),
-            preserve_js_class: true,
-        };
-        let result = WasmExportFunctionBuilder::build_export_function_body(context);
+        let result = WasmExportFunctionBuilder::build_export_function_body(
+            FunctionType::Method(&method),
+            true,
+        );
         let expected: Block = parse_quote!({
             use std::str::FromStr;
             use js_sys::{Reflect, Object};
@@ -516,11 +504,10 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let context = BuildExportFunctionBodyContext {
-            function_type: FunctionType::Method(&method),
-            preserve_js_class: true,
-        };
-        let result = WasmExportFunctionBuilder::build_export_function_body(context);
+        let result = WasmExportFunctionBuilder::build_export_function_body(
+            FunctionType::Method(&method),
+            true,
+        );
         let expected: Block = parse_quote!({
             use std::str::FromStr;
             use js_sys::{Reflect, Object};
@@ -549,11 +536,10 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let context = BuildExportFunctionBodyContext {
-            function_type: FunctionType::Standalone(&function),
-            preserve_js_class: false,
-        };
-        let result = WasmExportFunctionBuilder::build_export_function_body(context);
+        let result = WasmExportFunctionBuilder::build_export_function_body(
+            FunctionType::Standalone(&function),
+            false,
+        );
         let expected: Block = parse_quote!({ some_name((arg1, arg2)).await.into() });
         assert_eq!(result, expected);
 
@@ -563,11 +549,10 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let context = BuildExportFunctionBodyContext {
-            function_type: FunctionType::Standalone(&function),
-            preserve_js_class: true,
-        };
-        let result = WasmExportFunctionBuilder::build_export_function_body(context);
+        let result = WasmExportFunctionBuilder::build_export_function_body(
+            FunctionType::Standalone(&function),
+            true,
+        );
         let expected: Block = parse_quote!({
             use std::str::FromStr;
             use js_sys::{Reflect, Object};
@@ -596,11 +581,10 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let context = BuildExportFunctionBodyContext {
-            function_type: FunctionType::Standalone(&function),
-            preserve_js_class: false,
-        };
-        let result = WasmExportFunctionBuilder::build_export_function_body(context);
+        let result = WasmExportFunctionBuilder::build_export_function_body(
+            FunctionType::Standalone(&function),
+            false,
+        );
         let expected: Block = parse_quote!({ some_name((arg1, arg2)).into() });
         assert_eq!(result, expected);
 
@@ -610,11 +594,10 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let context = BuildExportFunctionBodyContext {
-            function_type: FunctionType::Standalone(&function),
-            preserve_js_class: true,
-        };
-        let result = WasmExportFunctionBuilder::build_export_function_body(context);
+        let result = WasmExportFunctionBuilder::build_export_function_body(
+            FunctionType::Standalone(&function),
+            true,
+        );
         let expected: Block = parse_quote!({
             use std::str::FromStr;
             use js_sys::{Reflect, Object};
