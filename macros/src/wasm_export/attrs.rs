@@ -1,14 +1,12 @@
-use std::ops::Deref;
-
 use quote::ToTokens;
 use proc_macro2::Span;
-use super::{error::extend_err_msg};
+use super::{error::extend_err_msg, tools::try_extract_result_inner_type};
 use syn::{
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
     spanned::Spanned,
     token::Comma,
-    Error, ImplItemFn, Meta, Path, PathSegment, ReturnType, Token, Type, TypePath,
+    Error, ImplItemFn, Meta, ReturnType, Token, Type,
 };
 
 /// Contains list of wasm_export macro attribute keys
@@ -61,7 +59,7 @@ impl WasmExportAttrs {
     /// `unchecked_return_type` attr, falls back to original return inner type if not
     /// provided by `unchecked_return_type` attribute
     pub fn handle_return_type(&mut self, output: &ReturnType) -> Option<Type> {
-        let return_type = Self::try_extract_result_inner_type(output).cloned();
+        let return_type = try_extract_result_inner_type(output).cloned();
         let as_str = return_type
             .as_ref()
             .map(|v| format!("{}", v.to_token_stream()));
@@ -162,31 +160,6 @@ impl WasmExportAttrs {
         method.attrs.retain(|_| keep.next().unwrap_or(true));
 
         Ok(wasm_export_attrs)
-    }
-
-    /// Tries to extract the inner type T from a Result<T, E> type, returning None if not a Result
-    pub fn try_extract_result_inner_type(output: &ReturnType) -> Option<&Type> {
-        if let ReturnType::Type(_, return_type) = output {
-            if let Type::Path(TypePath {
-                path: Path { segments, .. },
-                ..
-            }) = return_type.deref()
-            {
-                if let Some(PathSegment {
-                    ident, arguments, ..
-                }) = segments.last()
-                {
-                    if *ident == "Result" {
-                        if let syn::PathArguments::AngleBracketed(args) = arguments {
-                            if let Some(syn::GenericArgument::Type(t)) = args.args.first() {
-                                return Some(t);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        None
     }
 }
 
@@ -447,33 +420,5 @@ mod tests {
             err.to_string(),
             "expected `,` as wasm_export attributes must be delimited by comma"
         );
-    }
-
-    #[test]
-    fn test_try_extract_result_inner_type_happy() {
-        let output: ReturnType = parse_quote!(-> Result<SomeType, Error>);
-        let result = WasmExportAttrs::try_extract_result_inner_type(&output).unwrap();
-        let expected: Type = parse_quote!(SomeType);
-        assert_eq!(*result, expected);
-
-        let output: ReturnType = parse_quote!(-> Result<(), Error>);
-        let result = WasmExportAttrs::try_extract_result_inner_type(&output).unwrap();
-        let expected: Type = parse_quote!(());
-        assert_eq!(*result, expected);
-    }
-
-    #[test]
-    fn test_try_extract_result_inner_type_unhappy() {
-        let output: ReturnType = parse_quote!(-> SomeType);
-        assert!(WasmExportAttrs::try_extract_result_inner_type(&output).is_none());
-
-        let output: ReturnType = parse_quote!(-> Option<SomeType>);
-        assert!(WasmExportAttrs::try_extract_result_inner_type(&output).is_none());
-
-        let output: ReturnType = parse_quote!(-> ());
-        assert!(WasmExportAttrs::try_extract_result_inner_type(&output).is_none());
-
-        let output: ReturnType = parse_quote!();
-        assert!(WasmExportAttrs::try_extract_result_inner_type(&output).is_none());
     }
 }

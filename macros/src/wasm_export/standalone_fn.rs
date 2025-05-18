@@ -3,7 +3,9 @@ use proc_macro2::TokenStream;
 use syn::{Error, ItemFn, ReturnType, Visibility};
 use super::{
     attrs::WasmExportAttrs,
-    builder::{WasmExportFunctionBuilder, WasmExportFunctionBuilderConfig},
+    tools::{
+        build_export_function_body, populate_name, BuildExportFunctionBodyContext, FunctionType,
+    },
 };
 
 /// Parses a standalone function and generates the wasm exported function
@@ -40,13 +42,36 @@ pub fn parse(func: &mut ItemFn, mut top_attrs: WasmExportAttrs) -> Result<TokenS
         ..
     } = top_attrs;
 
-    // create export function with the given configurations
-    let config = WasmExportFunctionBuilderConfig {
-        forward_attrs,
-        return_type,
-        preserve_js_class,
-    };
-    let export_fn = WasmExportFunctionBuilder::build_export_function(func, config);
+    // create the export function from original
+    let mut export_fn = func.clone();
+
+    // set exported function name, it is appended with __wasm_export
+    export_fn.sig.ident = populate_name(&func.sig.ident);
+
+    // forward attributes for exported function + allow snake_case
+    export_fn.attrs = vec![syn::parse_quote!(#[allow(non_snake_case)])];
+    if !forward_attrs.is_empty() {
+        export_fn.attrs.push(syn::parse_quote!(
+            #[wasm_bindgen(#(#forward_attrs),*)]
+        ));
+    } else {
+        // Add wasm_bindgen even if no specific attrs were forwarded
+        export_fn.attrs.push(syn::parse_quote!(#[wasm_bindgen]));
+    }
+
+    // set exported function return type as JsValue if
+    // preserve_js_class is true else set it to WasmEncodedResult
+    if preserve_js_class.is_some() {
+        export_fn.sig.output = syn::parse_quote!(-> JsValue);
+    } else {
+        export_fn.sig.output = syn::parse_quote!(-> WasmEncodedResult<#return_type>);
+    }
+
+    // build the function body by calling the original function
+    export_fn.block = Box::new(build_export_function_body(BuildExportFunctionBodyContext {
+        function_type: FunctionType::Standalone(func),
+        preserve_js_class: preserve_js_class.is_some(),
+    }));
 
     // Combine original and exported function tokens
     let output = quote! {

@@ -3,9 +3,9 @@ use proc_macro2::TokenStream;
 
 mod attrs;
 mod error;
-mod builder;
 mod impl_block;
 mod standalone_fn;
+mod tools;
 
 /// Starts macro parsing and expansion process by routing the parse towards corresponding
 /// parse logic based on input type

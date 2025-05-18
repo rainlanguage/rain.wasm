@@ -1,7 +1,12 @@
 use quote::quote;
 use proc_macro2::TokenStream;
-use super::{builder::*, attrs::*};
 use syn::{Error, ImplItem, ItemImpl, ReturnType};
+use super::{
+    attrs::*,
+    tools::{
+        build_export_function_body, populate_name, BuildExportFunctionBodyContext, FunctionType,
+    },
+};
 
 /// Parses an entire impl block methods and generates the wasm exported impl block with all the expected methods
 pub fn parse(impl_block: &mut ItemImpl, top_attrs: WasmExportAttrs) -> Result<TokenStream, Error> {
@@ -43,14 +48,35 @@ pub fn parse(impl_block: &mut ItemImpl, top_attrs: WasmExportAttrs) -> Result<To
 
                 // items included for exporting must all have Result<> return type
                 if let Some(return_type) = return_type {
-                    // create export method with the given configurations
-                    let config = WasmExportFunctionBuilderConfig {
-                        forward_attrs,
-                        return_type,
-                        preserve_js_class,
-                    };
-                    let export_method =
-                        WasmExportFunctionBuilder::build_export_method(method, config);
+                    // create exported method from original
+                    let mut export_method = method.clone();
+
+                    // set exported method name, it is appended with __wasm_export
+                    export_method.sig.ident = populate_name(&method.sig.ident);
+
+                    // forward attributes for exported method + allow snake_case
+                    export_method.attrs = vec![syn::parse_quote!(#[allow(non_snake_case)])];
+                    if !forward_attrs.is_empty() {
+                        export_method.attrs.push(syn::parse_quote!(
+                            #[wasm_bindgen(#(#forward_attrs),*)]
+                        ));
+                    }
+
+                    // set exported method return type as JsValue if
+                    // preserve_js_class is true else set it to WasmEncodedResult
+                    if preserve_js_class.is_some() {
+                        export_method.sig.output = syn::parse_quote!(-> JsValue);
+                    } else {
+                        export_method.sig.output =
+                            syn::parse_quote!(-> WasmEncodedResult<#return_type>);
+                    }
+
+                    // build the method body by calling the original method
+                    export_method.block =
+                        build_export_function_body(BuildExportFunctionBodyContext {
+                            function_type: FunctionType::Method(method),
+                            preserve_js_class: preserve_js_class.is_some(),
+                        });
 
                     export_items.push(ImplItem::Fn(export_method));
                 } else {
