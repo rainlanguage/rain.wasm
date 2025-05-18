@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 
 mod attrs;
 mod error;
-mod builder;
+mod tools;
 mod impl_block;
 mod standalone_fn;
 

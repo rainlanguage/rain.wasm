@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use syn::{Error, ImplItem, ItemImpl, ReturnType};
 use super::{
     attrs::*,
-    builder::{
+    tools::{
         build_export_function_body, populate_name, BuildExportFunctionBodyContext, FunctionType,
     },
 };

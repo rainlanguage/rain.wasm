@@ -1,6 +1,6 @@
 use quote::ToTokens;
 use proc_macro2::Span;
-use super::{error::extend_err_msg, builder::try_extract_result_inner_type};
+use super::{error::extend_err_msg, tools::try_extract_result_inner_type};
 use syn::{
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
