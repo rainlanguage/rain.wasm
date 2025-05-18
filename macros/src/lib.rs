@@ -63,7 +63,7 @@ mod wasm_export;
 /// ```
 ///
 /// ### Preserving JS Class In WasmEncodedResult
-/// By default, `WasmEncodedResult` is serialized to JS/TS using `serde_wasm_bindgen`
+/// By default, `WasmEncodedResult` is serialized to JS/TS using `serde_wasm_bindgen`,
 /// due to wasm_bindgen's limitations with generic types, this is fine when the Ok variant
 /// is not a JS/TS class instance, however, this approach does not preserve JS/TS class
 /// instances if a Rust struct corresponds to one, but rather `serde_wasm_bindgen` serialization
