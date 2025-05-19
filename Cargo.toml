@@ -3,7 +3,7 @@ name = "wasm-bindgen-utils"
 description = "Provides utilities and helpers that make working with wasm-bindgen easy"
 edition = "2021"
 license = "LicenseRef-DCL-1.0"
-version = "0.0.7"
+version = "0.0.8"
 homepage = "https://github.com/rainlanguage/rain.wasm"
 
 [dependencies]
@@ -32,4 +32,4 @@ trybuild = "1.0"
 
 [workspace.dependencies.wasm-bindgen-utils-macros]
 path = "macros"
-version = "=0.0.2"
+version = "=0.0.3"
