@@ -58,10 +58,8 @@ impl WasmExportFunctionBuilder {
         }
 
         // build the method body by calling the original method
-        export_method.block = Self::build_export_function_body(
-            FunctionType::Method(method),
-            preserve_js_class.is_some(),
-        );
+        export_method.block =
+            Self::build_fn_body_unified(FunctionType::Method(method), preserve_js_class.is_some());
 
         export_method
     }
@@ -103,7 +101,7 @@ impl WasmExportFunctionBuilder {
         }
 
         // build the function body by calling the original function
-        export_fn.block = Box::new(Self::build_export_function_body(
+        export_fn.block = Box::new(Self::build_fn_body_unified(
             FunctionType::Standalone(func),
             preserve_js_class.is_some(),
         ));
@@ -111,47 +109,41 @@ impl WasmExportFunctionBuilder {
         export_fn
     }
 
-    /// Creates a function call expression based on the given context (method or standalone)
-    pub fn build_export_function_body(
-        function_type: FunctionType,
-        preserve_js_class: bool,
-    ) -> Block {
-        // destructure the method's/function's name, args and asyncness
-        let (fn_name, fn_args, is_async) = match function_type {
-            FunctionType::Method(method) => (
-                &method.sig.ident,
-                &method.sig.inputs,
-                method.sig.asyncness.is_some(),
-            ),
-            FunctionType::Standalone(function) => (
-                &function.sig.ident,
-                &function.sig.inputs,
-                function.sig.asyncness.is_some(),
-            ),
-        };
+    /// Creates a function call expression (export function/method body) based on the given context (method or standalone)
+    pub fn build_fn_body_unified(function_type: FunctionType, preserve_js_class: bool) -> Block {
+        // build the base call_expr based on the function type
+        let (call_expr, is_async) = match function_type {
+            FunctionType::Method(method) => {
+                let fn_name = &method.sig.ident;
+                let (has_self_receiver, args) =
+                    Self::collect_function_arguments(&method.sig.inputs);
 
-        // collect arguments
-        let (has_self_receiver, args) = Self::collect_function_arguments(fn_args);
-
-        // create call expression from the original
-        let call_expr = match function_type {
-            FunctionType::Method(_) => {
-                if has_self_receiver {
-                    // Instance method call: self.method_name(...)
+                let call_expr = if has_self_receiver {
+                    // instance method call: self.method_name(...)
                     quote! { self.#fn_name(#(#args),*) }
                 } else {
-                    // Static method call: Self::method_name(...)
+                    // static method call: Self::method_name(...)
                     quote! { Self::#fn_name(#(#args),*) }
-                }
+                };
+
+                // return base call expression and asyncness
+                (call_expr, method.sig.asyncness.is_some())
             }
-            FunctionType::Standalone(_) => {
-                quote! { #fn_name(#(#args),*) }
+            FunctionType::Standalone(function) => {
+                let fn_name = &function.sig.ident;
+                let (_, args) = Self::collect_function_arguments(&function.sig.inputs);
+
+                // return base call expression and asyncness
+                (
+                    quote! { #fn_name(#(#args),*) },
+                    function.sig.asyncness.is_some(),
+                )
             }
         };
 
         // append .await if the function is async, and .into() in
         // all cases to convert rust Result to WasmEncodedResult
-        let expression = if is_async {
+        let call_expr = if is_async {
             quote!( #call_expr.await.into() )
         } else {
             quote!( #call_expr.into() )
@@ -180,7 +172,7 @@ impl WasmExportFunctionBuilder {
                 // "Reflect::set" can only fail if the obj is sealed or frozen which is not the case
                 // here, so it is safe to use unwrap, "Reflect::set" is similar to "obj[key] = value"
                 // in js, for more info read MDN docs for Reflect
-                let result = #expression;
+                let result = #call_expr;
                 match result {
                     Ok(value) => {
                         Reflect::set(&obj, &JsValue::from_str("value"), &value.into()).unwrap();
@@ -197,7 +189,7 @@ impl WasmExportFunctionBuilder {
             })
         } else {
             syn::parse_quote!({
-                #expression
+                #call_expr
             })
         }
     }
@@ -362,10 +354,8 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let result = WasmExportFunctionBuilder::build_export_function_body(
-            FunctionType::Method(&method),
-            false,
-        );
+        let result =
+            WasmExportFunctionBuilder::build_fn_body_unified(FunctionType::Method(&method), false);
         let expected: Block = parse_quote!({ Self::some_name((arg1, arg2)).await.into() });
         assert_eq!(result, expected);
 
@@ -375,10 +365,8 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let result = WasmExportFunctionBuilder::build_export_function_body(
-            FunctionType::Method(&method),
-            false,
-        );
+        let result =
+            WasmExportFunctionBuilder::build_fn_body_unified(FunctionType::Method(&method), false);
         let expected: Block = parse_quote!({ self.some_name((arg1, arg2)).await.into() });
         assert_eq!(result, expected);
 
@@ -388,10 +376,8 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let result = WasmExportFunctionBuilder::build_export_function_body(
-            FunctionType::Method(&method),
-            true,
-        );
+        let result =
+            WasmExportFunctionBuilder::build_fn_body_unified(FunctionType::Method(&method), true);
         let expected: Block = parse_quote!({
             use std::str::FromStr;
             use js_sys::{Reflect, Object};
@@ -417,10 +403,8 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let result = WasmExportFunctionBuilder::build_export_function_body(
-            FunctionType::Method(&method),
-            true,
-        );
+        let result =
+            WasmExportFunctionBuilder::build_fn_body_unified(FunctionType::Method(&method), true);
         let expected: Block = parse_quote!({
             use std::str::FromStr;
             use js_sys::{Reflect, Object};
@@ -449,10 +433,8 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let result = WasmExportFunctionBuilder::build_export_function_body(
-            FunctionType::Method(&method),
-            false,
-        );
+        let result =
+            WasmExportFunctionBuilder::build_fn_body_unified(FunctionType::Method(&method), false);
         let expected: Block = parse_quote!({ Self::some_name((arg1, arg2)).into() });
         assert_eq!(result, expected);
 
@@ -462,10 +444,8 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let result = WasmExportFunctionBuilder::build_export_function_body(
-            FunctionType::Method(&method),
-            false,
-        );
+        let result =
+            WasmExportFunctionBuilder::build_fn_body_unified(FunctionType::Method(&method), false);
         let expected: Block = parse_quote!({ self.some_name((arg1, arg2)).into() });
         assert_eq!(result, expected);
 
@@ -475,10 +455,8 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let result = WasmExportFunctionBuilder::build_export_function_body(
-            FunctionType::Method(&method),
-            true,
-        );
+        let result =
+            WasmExportFunctionBuilder::build_fn_body_unified(FunctionType::Method(&method), true);
         let expected: Block = parse_quote!({
             use std::str::FromStr;
             use js_sys::{Reflect, Object};
@@ -504,10 +482,8 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let result = WasmExportFunctionBuilder::build_export_function_body(
-            FunctionType::Method(&method),
-            true,
-        );
+        let result =
+            WasmExportFunctionBuilder::build_fn_body_unified(FunctionType::Method(&method), true);
         let expected: Block = parse_quote!({
             use std::str::FromStr;
             use js_sys::{Reflect, Object};
@@ -536,7 +512,7 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let result = WasmExportFunctionBuilder::build_export_function_body(
+        let result = WasmExportFunctionBuilder::build_fn_body_unified(
             FunctionType::Standalone(&function),
             false,
         );
@@ -549,7 +525,7 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let result = WasmExportFunctionBuilder::build_export_function_body(
+        let result = WasmExportFunctionBuilder::build_fn_body_unified(
             FunctionType::Standalone(&function),
             true,
         );
@@ -581,7 +557,7 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let result = WasmExportFunctionBuilder::build_export_function_body(
+        let result = WasmExportFunctionBuilder::build_fn_body_unified(
             FunctionType::Standalone(&function),
             false,
         );
@@ -594,7 +570,7 @@ mod tests {
                 Ok(SomeType::new())
             }
         );
-        let result = WasmExportFunctionBuilder::build_export_function_body(
+        let result = WasmExportFunctionBuilder::build_fn_body_unified(
             FunctionType::Standalone(&function),
             true,
         );
