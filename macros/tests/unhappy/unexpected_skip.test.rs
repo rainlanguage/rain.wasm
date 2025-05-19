@@ -10,4 +10,9 @@ impl TestStruct {
     }
 }
 
+#[wasm_export(skip)]
+pub fn some_fn(arg: String) -> Result<String, Error> {
+    Ok(String::new())
+}
+
 fn main() {}
