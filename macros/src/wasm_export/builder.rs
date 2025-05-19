@@ -188,6 +188,7 @@ impl WasmExportFunctionBuilder {
                 obj.into()
             })
         } else {
+            // parses the call expression token stream to syn::Block
             syn::parse_quote!({
                 #call_expr
             })
