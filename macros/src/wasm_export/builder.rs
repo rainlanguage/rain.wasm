@@ -41,7 +41,7 @@ impl WasmExportFunctionBuilder {
         // set exported method name, it is appended with __wasm_export
         export_method.sig.ident = Self::populate_name(&method.sig.ident);
 
-        // forward attributes for exported method + allow snake_case
+        // forward attributes for exported method + allow none snake_case
         export_method.attrs = vec![syn::parse_quote!(#[allow(non_snake_case)])];
         if !forward_attrs.is_empty() {
             export_method.attrs.push(syn::parse_quote!(
@@ -81,7 +81,7 @@ impl WasmExportFunctionBuilder {
         // set exported function name, it is appended with __wasm_export
         export_fn.sig.ident = Self::populate_name(&func.sig.ident);
 
-        // forward attributes for exported function + allow snake_case
+        // forward attributes for exported function + allow none snake_case
         export_fn.attrs = vec![syn::parse_quote!(#[allow(non_snake_case)])];
         if !forward_attrs.is_empty() {
             export_fn.attrs.push(syn::parse_quote!(
