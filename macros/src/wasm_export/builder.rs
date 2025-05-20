@@ -348,7 +348,7 @@ mod tests {
     }
 
     #[test]
-    fn test_build_body_method_async() {
+    fn test_build_fn_body_unified_method_async() {
         // async method static
         let method: ImplItemFn = parse_quote!(
             pub async fn some_name((arg1, arg2): (String, u8)) -> Result<SomeType, Error> {
@@ -427,7 +427,7 @@ mod tests {
     }
 
     #[test]
-    fn test_build_body_method_sync() {
+    fn test_build_fn_body_unified_method_sync() {
         // sync method static
         let method: ImplItemFn = parse_quote!(
             pub fn some_name((arg1, arg2): (String, u8)) -> Result<SomeType, Error> {
@@ -506,7 +506,7 @@ mod tests {
     }
 
     #[test]
-    fn test_build_body_standalone_function_async() {
+    fn test_build_fn_body_unified_standalone_function_async() {
         // async function
         let function: ItemFn = parse_quote!(
             pub async fn some_name((arg1, arg2): (String, u8)) -> Result<SomeType, Error> {
@@ -551,7 +551,7 @@ mod tests {
     }
 
     #[test]
-    fn test_build_body_standalone_function_sync() {
+    fn test_build_fn_body_unified_standalone_function_sync() {
         // sync function
         let function: ItemFn = parse_quote!(
             pub fn some_name((arg1, arg2): (String, u8)) -> Result<SomeType, Error> {
