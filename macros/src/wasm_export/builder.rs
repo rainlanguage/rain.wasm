@@ -21,8 +21,8 @@ pub struct WasmExportFunctionBuilderConfig {
 /// Provides functionalities to build methods/functions that are going to be exposed to wasm bindgen output
 pub struct WasmExportFunctionBuilder;
 impl WasmExportFunctionBuilder {
-    /// Builds a wasm export method from the given method and configurations,
-    /// that is, creating a new method that is exposed to wasm bindgen that calls the original
+    /// Builds a wasm export method from the given method and configurations, that is,
+    /// creating a new method that is exposed to wasm bindgen that calls the original
     /// method and converting the result of that call into a WasmEncodedResult and also
     /// forwards any wasm bindgen attributes to the exporting method
     pub fn build_export_method(
@@ -66,8 +66,8 @@ impl WasmExportFunctionBuilder {
 
     /// Builds a wasm export standalone function from the given function and configurations,
     /// that is, creating a new function that is exposed to wasm bindgen that calls the original
-    /// function and converting the result of that call into a WasmEncodedResult and also
-    /// forwards any wasm bindgen attributes to the exporting function
+    /// function and converting the result of that call into a WasmEncodedResult and also forwards
+    /// any wasm bindgen attributes to the exporting function
     pub fn build_export_function(func: &ItemFn, config: WasmExportFunctionBuilderConfig) -> ItemFn {
         let WasmExportFunctionBuilderConfig {
             forward_attrs,
