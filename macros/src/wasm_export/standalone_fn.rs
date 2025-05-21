@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use syn::{Error, ItemFn, ReturnType, Visibility};
 use super::{
     attrs::WasmExportAttrs,
-    tools::{create_function_call_unified, populate_name, FunctionContext},
+    builder::{WasmExportFunctionBuilder, WasmExportFunctionBuilderConfig},
 };
 
 /// Parses a standalone function and generates the wasm exported function
@@ -17,8 +17,8 @@ pub fn parse(func: &mut ItemFn, mut top_attrs: WasmExportAttrs) -> Result<TokenS
         };
     }
 
-    // 2. Validate return type and determine the inner type T for Result<T, E>
-    let original_return_type = match top_attrs.handle_return_type(&func.sig.output) {
+    // Validate return type and determine the inner type T for Result<T, E>
+    let return_type = match top_attrs.handle_return_type(&func.sig.output) {
         Some(ty) => ty,
         None => {
             let msg = "expected Result<T, E> return type";
@@ -34,39 +34,21 @@ pub fn parse(func: &mut ItemFn, mut top_attrs: WasmExportAttrs) -> Result<TokenS
     // functions cannot have function level attrs like impl blocks do,
     // they only have top level attrs which comes from entry point macro
     // and they are not available as part of function level attrs
-    let WasmExportAttrs { forward_attrs, .. } = top_attrs;
+    let WasmExportAttrs {
+        forward_attrs,
+        preserve_js_class,
+        ..
+    } = top_attrs;
 
-    // 3. Create the export function
-    let original_fn_ident = &func.sig.ident;
-    let mut export_fn = func.clone();
+    // create export function with the given configurations
+    let config = WasmExportFunctionBuilderConfig {
+        forward_attrs,
+        return_type,
+        preserve_js_class,
+    };
+    let export_fn = WasmExportFunctionBuilder::build_export_function(func, config);
 
-    // Set export function name (e.g., original_name__wasm_export)
-    export_fn.sig.ident = populate_name(original_fn_ident);
-
-    // Add #[wasm_bindgen(...)] attribute and snake_case
-    // forward attributes for exported func
-    export_fn.attrs = vec![syn::parse_quote!(#[allow(non_snake_case)])];
-    if !forward_attrs.is_empty() {
-        export_fn.attrs.push(syn::parse_quote!(
-            #[wasm_bindgen(#(#forward_attrs),*)]
-        ));
-    } else {
-        // Add wasm_bindgen even if no specific attrs were forwarded
-        export_fn.attrs.push(syn::parse_quote!(#[wasm_bindgen]));
-    }
-
-    // Set export function return type to WasmEncodedResult<T>
-    export_fn.sig.output = syn::parse_quote!(-> WasmEncodedResult<#original_return_type>);
-
-    // Set export function body to call the original function
-    export_fn.block = Box::new(create_function_call_unified(
-        original_fn_ident,
-        &func.sig.inputs,
-        func.sig.asyncness.is_some(), // Pass true if original fn is async
-        FunctionContext::Standalone,
-    ));
-
-    // 4. Combine original and exported function tokens
+    // Combine original and exported function tokens
     let output = quote! {
         #func // The original function (with wasm_export attr removed)
 
@@ -182,6 +164,7 @@ mod tests {
             should_skip: None,
             forward_attrs: vec![parse_quote!(some_forward_attr)],
             unchecked_return_type: Some(("string".to_string(), Span::call_site())),
+            preserve_js_class: None,
         };
         let result = parse(&mut method, wasm_export_attrs).unwrap();
         let expected: TokenStream = parse_quote!(

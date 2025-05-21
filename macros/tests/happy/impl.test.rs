@@ -21,6 +21,16 @@ impl TestStruct {
     pub async fn some_self_method(&self, arg: String) -> Result<TestStruct, Error> {
         Ok(TestStruct)
     }
+
+    #[wasm_export(js_name = "someMethodPreserveClassAsync", preserve_js_class)]
+    pub async fn some_method_preserve_class_async(arg: String) -> Result<TestStruct, Error> {
+        Ok(TestStruct)
+    }
+
+    #[wasm_export(js_name = "someMethodPreserveClassSync", preserve_js_class)]
+    pub fn some_method_preserve_class_sync(&self, arg: String) -> Result<TestStruct, Error> {
+        Ok(TestStruct)
+    }
 }
 
 #[wasm_export(some_top_wbg_attr = "something", some_other_wbg_attr)]

@@ -1,0 +1,5 @@
+error: unexpected `preserve_js_class` attribute, it can only be used for impl block methods or standalone functions
+ --> tests/unhappy/unexpected_preserve_js_class.test.rs:6:15
+  |
+6 | #[wasm_export(preserve_js_class)]
+  |               ^^^^^^^^^^^^^^^^^

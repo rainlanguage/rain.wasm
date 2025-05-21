@@ -1,0 +1,11 @@
+error: duplicate `preserve_js_class` attribute
+ --> tests/unhappy/dup_preserve_js_class.test.rs:8:38
+  |
+8 |     #[wasm_export(preserve_js_class, preserve_js_class)]
+  |                                      ^^^^^^^^^^^^^^^^^
+
+error: duplicate `preserve_js_class` attribute
+  --> tests/unhappy/dup_preserve_js_class.test.rs:14:34
+   |
+14 | #[wasm_export(preserve_js_class, preserve_js_class)]
+   |                                  ^^^^^^^^^^^^^^^^^

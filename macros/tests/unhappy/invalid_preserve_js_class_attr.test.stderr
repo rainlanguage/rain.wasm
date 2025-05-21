@@ -1,0 +1,11 @@
+error: unexpected token in attribute, `preserve_js_class` attribute does not take any extra tokens or arguments
+ --> tests/unhappy/invalid_preserve_js_class_attr.test.rs:8:37
+  |
+8 |     #[wasm_export(preserve_js_class = "string")]
+  |                                     ^
+
+error: unexpected token in attribute, `preserve_js_class` attribute does not take any extra tokens or arguments
+  --> tests/unhappy/invalid_preserve_js_class_attr.test.rs:14:33
+   |
+14 | #[wasm_export(preserve_js_class = "string")]
+   |                                 ^
