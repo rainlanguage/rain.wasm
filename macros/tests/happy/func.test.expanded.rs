@@ -32,7 +32,6 @@ pub async fn some_fn_preserve_class_async(arg: String) -> Result<TestStruct, Err
     unchecked_return_type = "WasmEncodedResult<TestStruct>"
 )]
 pub async fn some_fn_preserve_class_async__wasm_export(arg: String) -> JsValue {
-    use std::str::FromStr;
     use js_sys::{Reflect, Object};
     let obj = Object::new();
     let result = some_fn_preserve_class_async(arg).await.into();
@@ -59,7 +58,6 @@ pub fn some_fn_preserve_class_sync(arg: String) -> Result<TestStruct, Error> {
     unchecked_return_type = "WasmEncodedResult<TestStruct>"
 )]
 pub fn some_fn_preserve_class_sync__wasm_export(arg: String) -> JsValue {
-    use std::str::FromStr;
     use js_sys::{Reflect, Object};
     let obj = Object::new();
     let result = some_fn_preserve_class_sync(arg).into();

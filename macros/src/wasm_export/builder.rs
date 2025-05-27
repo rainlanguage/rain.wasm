@@ -155,7 +155,6 @@ impl WasmExportFunctionBuilder {
         if preserve_js_class {
             syn::parse_quote!({
                 // bring necessary items in scope
-                use std::str::FromStr;
                 use js_sys::{Reflect, Object};
 
                 // create empty js obj
@@ -268,7 +267,6 @@ mod tests {
             #[allow(non_snake_case)]
             #[wasm_bindgen(some_forward_attr)]
             pub async fn some_fn__wasm_export(arg1: String) -> JsValue {
-                use std::str::FromStr;
                 use js_sys::{Reflect, Object};
                 let obj = Object::new();
                 let result = Self::some_fn(arg1).await.into();
@@ -325,7 +323,6 @@ mod tests {
             #[allow(non_snake_case)]
             #[wasm_bindgen(some_forward_attr)]
             pub async fn some_fn__wasm_export(arg1: String) -> JsValue {
-                use std::str::FromStr;
                 use js_sys::{Reflect, Object};
                 let obj = Object::new();
                 let result = some_fn(arg1).await.into();
@@ -380,7 +377,6 @@ mod tests {
         let result =
             WasmExportFunctionBuilder::build_fn_body_unified(FunctionType::Method(&method), true);
         let expected: Block = parse_quote!({
-            use std::str::FromStr;
             use js_sys::{Reflect, Object};
             let obj = Object::new();
             let result = Self::some_name((arg1, arg2)).await.into();
@@ -407,7 +403,6 @@ mod tests {
         let result =
             WasmExportFunctionBuilder::build_fn_body_unified(FunctionType::Method(&method), true);
         let expected: Block = parse_quote!({
-            use std::str::FromStr;
             use js_sys::{Reflect, Object};
             let obj = Object::new();
             let result = self.some_name((arg1, arg2)).await.into();
@@ -459,7 +454,6 @@ mod tests {
         let result =
             WasmExportFunctionBuilder::build_fn_body_unified(FunctionType::Method(&method), true);
         let expected: Block = parse_quote!({
-            use std::str::FromStr;
             use js_sys::{Reflect, Object};
             let obj = Object::new();
             let result = Self::some_name((arg1, arg2)).into();
@@ -486,7 +480,6 @@ mod tests {
         let result =
             WasmExportFunctionBuilder::build_fn_body_unified(FunctionType::Method(&method), true);
         let expected: Block = parse_quote!({
-            use std::str::FromStr;
             use js_sys::{Reflect, Object};
             let obj = Object::new();
             let result = self.some_name((arg1, arg2)).into();
@@ -531,7 +524,6 @@ mod tests {
             true,
         );
         let expected: Block = parse_quote!({
-            use std::str::FromStr;
             use js_sys::{Reflect, Object};
             let obj = Object::new();
             let result = some_name((arg1, arg2)).await.into();
@@ -576,7 +568,6 @@ mod tests {
             true,
         );
         let expected: Block = parse_quote!({
-            use std::str::FromStr;
             use js_sys::{Reflect, Object};
             let obj = Object::new();
             let result = some_name((arg1, arg2)).into();

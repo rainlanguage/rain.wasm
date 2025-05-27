@@ -57,7 +57,6 @@ impl TestStruct {
         unchecked_return_type = "WasmEncodedResult<TestStruct>"
     )]
     pub async fn some_method_preserve_class_async__wasm_export(arg: String) -> JsValue {
-        use std::str::FromStr;
         use js_sys::{Reflect, Object};
         let obj = Object::new();
         let result = Self::some_method_preserve_class_async(arg).await.into();
@@ -81,7 +80,6 @@ impl TestStruct {
         unchecked_return_type = "WasmEncodedResult<TestStruct>"
     )]
     pub fn some_method_preserve_class_sync__wasm_export(&self, arg: String) -> JsValue {
-        use std::str::FromStr;
         use js_sys::{Reflect, Object};
         let obj = Object::new();
         let result = self.some_method_preserve_class_sync(arg).into();
