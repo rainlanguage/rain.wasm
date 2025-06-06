@@ -42,9 +42,10 @@ pub async fn some_fn_preserve_class_async__wasm_export(arg: String) -> JsValue {
                 .unwrap();
         }
         Err(error) => {
+            let wasm_error: WasmEncodedError = error.into();
             Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED)
                 .unwrap();
-            Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+            Reflect::set(&obj, &JsValue::from_str("error"), &wasm_error.into()).unwrap();
         }
     };
     obj.into()
@@ -68,9 +69,10 @@ pub fn some_fn_preserve_class_sync__wasm_export(arg: String) -> JsValue {
                 .unwrap();
         }
         Err(error) => {
+            let wasm_error: WasmEncodedError = error.into();
             Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED)
                 .unwrap();
-            Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+            Reflect::set(&obj, &JsValue::from_str("error"), &wasm_error.into()).unwrap();
         }
     };
     obj.into()

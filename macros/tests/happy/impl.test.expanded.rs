@@ -67,9 +67,11 @@ impl TestStruct {
                     .unwrap();
             }
             Err(error) => {
+                let wasm_error: WasmEncodedError = error.into();
                 Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED)
                     .unwrap();
-                Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                Reflect::set(&obj, &JsValue::from_str("error"), &wasm_error.into())
+                    .unwrap();
             }
         };
         obj.into()
@@ -90,9 +92,11 @@ impl TestStruct {
                     .unwrap();
             }
             Err(error) => {
+                let wasm_error: WasmEncodedError = error.into();
                 Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED)
                     .unwrap();
-                Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                Reflect::set(&obj, &JsValue::from_str("error"), &wasm_error.into())
+                    .unwrap();
             }
         };
         obj.into()

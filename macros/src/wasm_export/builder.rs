@@ -178,8 +178,9 @@ impl WasmExportFunctionBuilder {
                         Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED).unwrap();
                     }
                     Err(error) => {
+                        let wasm_error: WasmEncodedError = error.into();
                         Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED).unwrap();
-                        Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                        Reflect::set(&obj, &JsValue::from_str("error"), &wasm_error.into()).unwrap();
                     }
                 };
 
@@ -277,9 +278,10 @@ mod tests {
                             .unwrap();
                     }
                     Err(error) => {
+                        let wasm_error: WasmEncodedError = error.into();
                         Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED)
                             .unwrap();
-                        Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                        Reflect::set(&obj, &JsValue::from_str("error"), &wasm_error.into()).unwrap();
                     }
                 };
                 obj.into()
@@ -333,9 +335,10 @@ mod tests {
                             .unwrap();
                     }
                     Err(error) => {
+                        let wasm_error: WasmEncodedError = error.into();
                         Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED)
                             .unwrap();
-                        Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                        Reflect::set(&obj, &JsValue::from_str("error"), &wasm_error.into()).unwrap();
                     }
                 };
                 obj.into()
@@ -386,8 +389,9 @@ mod tests {
                     Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED).unwrap();
                 }
                 Err(error) => {
+                    let wasm_error: WasmEncodedError = error.into();
                     Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED).unwrap();
-                    Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &wasm_error.into()).unwrap();
                 }
             };
             obj.into()
@@ -412,8 +416,9 @@ mod tests {
                     Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED).unwrap();
                 }
                 Err(error) => {
+                    let wasm_error: WasmEncodedError = error.into();
                     Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED).unwrap();
-                    Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &wasm_error.into()).unwrap();
                 }
             };
             obj.into()
@@ -463,8 +468,9 @@ mod tests {
                     Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED).unwrap();
                 }
                 Err(error) => {
+                    let wasm_error: WasmEncodedError = error.into();
                     Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED).unwrap();
-                    Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &wasm_error.into()).unwrap();
                 }
             };
             obj.into()
@@ -489,8 +495,9 @@ mod tests {
                     Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED).unwrap();
                 }
                 Err(error) => {
+                    let wasm_error: WasmEncodedError = error.into();
                     Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED).unwrap();
-                    Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &wasm_error.into()).unwrap();
                 }
             };
             obj.into()
@@ -533,8 +540,9 @@ mod tests {
                     Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED).unwrap();
                 }
                 Err(error) => {
+                    let wasm_error: WasmEncodedError = error.into();
                     Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED).unwrap();
-                    Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &wasm_error.into()).unwrap();
                 }
             };
             obj.into()
@@ -577,8 +585,9 @@ mod tests {
                     Reflect::set(&obj, &JsValue::from_str("error"), &JsValue::UNDEFINED).unwrap();
                 }
                 Err(error) => {
+                    let wasm_error: WasmEncodedError = error.into();
                     Reflect::set(&obj, &JsValue::from_str("value"), &JsValue::UNDEFINED).unwrap();
-                    Reflect::set(&obj, &JsValue::from_str("error"), &error.into()).unwrap();
+                    Reflect::set(&obj, &JsValue::from_str("error"), &wasm_error.into()).unwrap();
                 }
             };
             obj.into()
