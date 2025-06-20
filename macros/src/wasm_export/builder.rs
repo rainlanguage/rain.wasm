@@ -363,6 +363,7 @@ mod tests {
     use std::str::FromStr;
     use proc_macro2::{Span, TokenStream};
     use syn::{parse::Parser, parse_quote};
+    use quote::ToTokens;
 
     #[test]
     fn test_from_method() {
@@ -772,5 +773,156 @@ mod tests {
         let org_fn_ident = Ident::new("some_name", Span::call_site());
         let result = WasmExportFunctionBuilder::populate_name(&org_fn_ident);
         assert_eq!(result.to_string(), "some_name__wasm_export");
+    }
+
+    #[test]
+    fn test_process_function_parameters_basic() {
+        // Test basic parameter processing without wasm_export attributes
+        let stream = TokenStream::from_str(r#"arg1: String, arg2: u32"#).unwrap();
+        let inputs = Punctuated::<FnArg, Comma>::parse_terminated
+            .parse2(stream)
+            .unwrap();
+        let result = WasmExportFunctionBuilder::process_function_parameters(&inputs).unwrap();
+        
+        assert_eq!(result.0, false); // no self receiver
+        assert_eq!(result.1.len(), 2); // processed inputs
+        assert_eq!(result.2.len(), 2); // cleaned inputs
+        
+        // Both processed and cleaned should be identical when no wasm_export attrs
+        assert_eq!(result.1.len(), result.2.len());
+        // Check that first parameter is the same
+        if let (FnArg::Typed(processed), FnArg::Typed(cleaned)) = (&result.1[0], &result.2[0]) {
+            assert_eq!(processed.attrs.len(), cleaned.attrs.len());
+            assert_eq!(processed.pat.to_token_stream().to_string(), cleaned.pat.to_token_stream().to_string());
+        }
+    }
+
+    #[test]
+    fn test_process_function_parameters_with_param_description() {
+        // Test parameter processing with param_description
+        let stream = TokenStream::from_str(
+            r#"#[wasm_export(param_description = "first param")] arg1: String, arg2: u32"#
+        ).unwrap();
+        let inputs = Punctuated::<FnArg, Comma>::parse_terminated
+            .parse2(stream)
+            .unwrap();
+        let result = WasmExportFunctionBuilder::process_function_parameters(&inputs).unwrap();
+        
+        assert_eq!(result.0, false); // no self receiver
+        assert_eq!(result.1.len(), 2); // processed inputs
+        assert_eq!(result.2.len(), 2); // cleaned inputs
+        
+        // Processed should have wasm_bindgen attribute, cleaned should not
+        let processed_first = &result.1[0];
+        let cleaned_first = &result.2[0];
+        
+        if let (FnArg::Typed(processed_pat), FnArg::Typed(cleaned_pat)) = (processed_first, cleaned_first) {
+            // Processed should have wasm_bindgen attribute
+            assert!(processed_pat.attrs.iter().any(|attr| attr.path().is_ident("wasm_bindgen")));
+            // Cleaned should not have any attributes
+            assert!(cleaned_pat.attrs.is_empty());
+        } else {
+            panic!("Expected FnArg::Typed");
+        }
+    }
+
+    #[test]
+    fn test_process_function_parameters_with_self() {
+        // Test parameter processing with self receiver
+        let stream = TokenStream::from_str(r#"&self, arg1: String"#).unwrap();
+        let inputs = Punctuated::<FnArg, Comma>::parse_terminated
+            .parse2(stream)
+            .unwrap();
+        let result = WasmExportFunctionBuilder::process_function_parameters(&inputs).unwrap();
+        
+        assert_eq!(result.0, true); // has self receiver
+        assert_eq!(result.1.len(), 2); // processed inputs (self + arg1)
+        assert_eq!(result.2.len(), 2); // cleaned inputs (self + arg1)
+    }
+
+    #[test]
+    fn test_process_function_parameters_self_with_wasm_export_error() {
+        // Test that wasm_export on self receiver produces error
+        let stream = TokenStream::from_str(
+            r#"#[wasm_export(param_description = "self desc")] &self, arg1: String"#
+        ).unwrap();
+        let inputs = Punctuated::<FnArg, Comma>::parse_terminated
+            .parse2(stream)
+            .unwrap();
+        let result = WasmExportFunctionBuilder::process_function_parameters(&inputs);
+        
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(error.to_string().contains("param_description` cannot be used on receiver parameters"));
+    }
+
+    #[test]
+    fn test_process_parameter_wasm_export_attr_valid() {
+        // Test valid param_description processing
+        let attr: syn::Attribute = syn::parse_quote!(#[wasm_export(param_description = "test description")]);
+        let result = WasmExportFunctionBuilder::process_parameter_wasm_export_attr(&attr).unwrap();
+        
+        assert_eq!(result.len(), 1);
+        let meta = &result[0];
+        assert!(meta.path().is_ident("param_description"));
+    }
+
+    #[test]
+    fn test_process_parameter_wasm_export_attr_duplicate_error() {
+        // Test duplicate param_description error
+        let attr: syn::Attribute = syn::parse_quote!(
+            #[wasm_export(param_description = "first", param_description = "second")]
+        );
+        let result = WasmExportFunctionBuilder::process_parameter_wasm_export_attr(&attr);
+        
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(error.to_string().contains("duplicate `param_description` attribute"));
+    }
+
+    #[test]
+    fn test_process_parameter_wasm_export_attr_invalid_value() {
+        // Test invalid value type error
+        let attr: syn::Attribute = syn::parse_quote!(#[wasm_export(param_description = something)]);
+        let result = WasmExportFunctionBuilder::process_parameter_wasm_export_attr(&attr);
+        
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(error.to_string().contains("expected string literal"));
+    }
+
+    #[test]
+    fn test_process_parameter_wasm_export_attr_missing_value() {
+        // Test missing value error
+        let attr: syn::Attribute = syn::parse_quote!(#[wasm_export(param_description)]);
+        let result = WasmExportFunctionBuilder::process_parameter_wasm_export_attr(&attr);
+        
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(error.to_string().contains("expected a value for this attribute"));
+    }
+
+    #[test]
+    fn test_clean_parameter_attributes() {
+        // Test cleaning wasm_export attributes from parameters
+        let stream = TokenStream::from_str(
+            r#"#[wasm_export(param_description = "test")] #[other_attr] arg1: String, arg2: u32"#
+        ).unwrap();
+        let mut inputs = Punctuated::<FnArg, Comma>::parse_terminated
+            .parse2(stream)
+            .unwrap();
+        
+        // Before cleaning - should have both attributes
+        if let FnArg::Typed(pat_type) = &inputs[0] {
+            assert_eq!(pat_type.attrs.len(), 2);
+        }
+        
+        WasmExportFunctionBuilder::clean_parameter_attributes(&mut inputs);
+        
+        // After cleaning - should only have other_attr
+        if let FnArg::Typed(pat_type) = &inputs[0] {
+            assert_eq!(pat_type.attrs.len(), 1);
+            assert!(pat_type.attrs[0].path().is_ident("other_attr"));
+        }
     }
 }
