@@ -23,3 +23,13 @@ pub async fn some_fn_preserve_class_async(arg: String) -> Result<TestStruct, Err
 pub fn some_fn_preserve_class_sync(arg: String) -> Result<TestStruct, Error> {
     Ok(TestStruct)
 }
+
+#[wasm_export(return_description = "returns the sum of two numbers")]
+pub fn add_with_description(a: u32, b: u32) -> Result<u32, Error> {
+    Ok(a + b)
+}
+
+#[wasm_export(js_name = "complexCalc", return_description = "performs complex calculation", catch)]
+pub async fn complex_calculation_with_desc(input: String) -> Result<i64, Error> {
+    Ok(42)
+}

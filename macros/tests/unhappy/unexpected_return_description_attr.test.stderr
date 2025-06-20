@@ -1,0 +1,5 @@
+error: unexpected `return_description` attribute, it can only be used for impl block methods or standalone functions
+ --> tests/unhappy/unexpected_return_description_attr.test.rs:6:15
+  |
+6 | #[wasm_export(return_description = "unexpected description")]
+  |               ^^^^^^^^^^^^^^^^^^

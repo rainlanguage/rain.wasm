@@ -1,0 +1,5 @@
+error: duplicate `return_description` attribute
+ --> tests/unhappy/dup_return_description_attr.test.rs:8:61
+  |
+8 |     #[wasm_export(return_description = "first description", return_description = "second description")]
+  |                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

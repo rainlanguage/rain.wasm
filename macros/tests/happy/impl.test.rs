@@ -39,4 +39,14 @@ impl TestStruct {
     pub fn returns_num_array(&mut self) -> Result<Vec<u8>, Error> {
         Ok(Vec::new())
     }
+
+    #[wasm_export(return_description = "gets the user's name")]
+    pub fn get_name(&self) -> Result<String, Error> {
+        Ok("test".to_string())
+    }
+
+    #[wasm_export(js_name = "getUserAge", return_description = "returns user age in years", catch)]
+    pub fn get_age(&self, user_id: u32) -> Result<u32, Error> {
+        Ok(25)
+    }
 }
