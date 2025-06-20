@@ -28,7 +28,7 @@ impl WasmExportFunctionBuilder {
     pub fn build_export_method(
         method: &ImplItemFn,
         config: WasmExportFunctionBuilderConfig,
-    ) -> ImplItemFn {
+    ) -> syn::Result<ImplItemFn> {
         let WasmExportFunctionBuilderConfig {
             forward_attrs,
             return_type,
@@ -40,6 +40,10 @@ impl WasmExportFunctionBuilder {
 
         // set exported method name, it is appended with __wasm_export
         export_method.sig.ident = Self::populate_name(&method.sig.ident);
+        
+        // process parameters to handle wasm_export attributes
+        let (_, processed_params, _) = Self::process_function_parameters(&method.sig.inputs)?;
+        export_method.sig.inputs = processed_params;
 
         // forward attributes for exported method + allow none snake_case
         export_method.attrs = vec![syn::parse_quote!(#[allow(non_snake_case)])];
@@ -61,14 +65,14 @@ impl WasmExportFunctionBuilder {
         export_method.block =
             Self::build_fn_body_unified(FunctionType::Method(method), preserve_js_class.is_some());
 
-        export_method
+        Ok(export_method)
     }
 
     /// Builds a wasm export standalone function from the given function and configurations,
     /// that is, creating a new function that is exposed to wasm bindgen that calls the original
     /// function and converting the result of that call into a WasmEncodedResult and also forwards
     /// any wasm bindgen attributes to the exporting function
-    pub fn build_export_function(func: &ItemFn, config: WasmExportFunctionBuilderConfig) -> ItemFn {
+    pub fn build_export_function(func: &ItemFn, config: WasmExportFunctionBuilderConfig) -> syn::Result<ItemFn> {
         let WasmExportFunctionBuilderConfig {
             forward_attrs,
             return_type,
@@ -80,6 +84,10 @@ impl WasmExportFunctionBuilder {
 
         // set exported function name, it is appended with __wasm_export
         export_fn.sig.ident = Self::populate_name(&func.sig.ident);
+        
+        // process parameters to handle wasm_export attributes
+        let (_, processed_params, _) = Self::process_function_parameters(&func.sig.inputs)?;
+        export_fn.sig.inputs = processed_params;
 
         // forward attributes for exported function + allow none snake_case
         export_fn.attrs = vec![syn::parse_quote!(#[allow(non_snake_case)])];
@@ -106,7 +114,7 @@ impl WasmExportFunctionBuilder {
             preserve_js_class.is_some(),
         ));
 
-        export_fn
+        Ok(export_fn)
     }
 
     /// Creates a function call expression (export function/method body) based on the given context (method or standalone)
@@ -217,6 +225,129 @@ impl WasmExportFunctionBuilder {
         (has_self_receiver, args)
     }
 
+    /// Processes function parameters by extracting wasm_export attributes and converting them to wasm_bindgen
+    /// Returns: (has_self_receiver, processed_inputs_for_wrapper, cleaned_inputs_for_original)
+    pub fn process_function_parameters(
+        inputs: &Punctuated<FnArg, Comma>,
+    ) -> syn::Result<(bool, Punctuated<FnArg, Comma>, Punctuated<FnArg, Comma>)> {
+        let mut has_self_receiver = false;
+        let mut processed_inputs = Punctuated::new();
+        let mut cleaned_inputs = Punctuated::new();
+
+        for input in inputs {
+            match input {
+                FnArg::Receiver(receiver) => {
+                    has_self_receiver = true;
+                    
+                    // Check if receiver has any wasm_export attributes - this should be an error
+                    for attr in &receiver.attrs {
+                        if attr.path().is_ident("wasm_export") {
+                            return Err(syn::Error::new_spanned(
+                                attr,
+                                "`param_description` cannot be used on receiver parameters (self, &self, &mut self)"
+                            ));
+                        }
+                    }
+                    
+                    processed_inputs.push(input.clone());
+                    cleaned_inputs.push(input.clone());
+                }
+                FnArg::Typed(pat_type) => {
+                    let mut new_pat_type = pat_type.clone();
+                    let mut cleaned_pat_type = pat_type.clone();
+                    
+                    // Process attributes on this parameter
+                    let mut wasm_bindgen_attrs = Vec::new();
+                    let mut other_attrs = Vec::new();
+                    
+                    for attr in &pat_type.attrs {
+                        if attr.path().is_ident("wasm_export") {
+                            // Parse wasm_export attribute and convert to wasm_bindgen
+                            let processed_attrs = Self::process_parameter_wasm_export_attr(attr)?;
+                            wasm_bindgen_attrs.extend(processed_attrs);
+                            // Don't include wasm_export attrs in cleaned version
+                        } else {
+                            other_attrs.push(attr.clone());
+                        }
+                    }
+                    
+                    // For wrapper function: combine processed wasm_bindgen attrs with other attrs
+                    new_pat_type.attrs = other_attrs.clone();
+                    if !wasm_bindgen_attrs.is_empty() {
+                        new_pat_type.attrs.push(syn::parse_quote!(#[wasm_bindgen(#(#wasm_bindgen_attrs),*)]));
+                    }
+                    
+                    // For original function: only other attrs (wasm_export removed)
+                    cleaned_pat_type.attrs = other_attrs;
+                    
+                    processed_inputs.push(FnArg::Typed(new_pat_type));
+                    cleaned_inputs.push(FnArg::Typed(cleaned_pat_type));
+                }
+            }
+        }
+
+        Ok((has_self_receiver, processed_inputs, cleaned_inputs))
+    }
+
+    /// Processes a single wasm_export attribute on a parameter and converts it to wasm_bindgen format
+    fn process_parameter_wasm_export_attr(attr: &syn::Attribute) -> syn::Result<Vec<syn::Meta>> {
+        use syn::{punctuated::Punctuated, token::Comma, Meta};
+        use super::error::extend_err_msg;
+        
+        let mut wasm_bindgen_metas = Vec::new();
+        let mut seen_param_description = false;
+        
+        // Handle empty wasm_export attribute
+        if matches!(attr.meta, Meta::Path(_)) {
+            return Ok(wasm_bindgen_metas);
+        }
+        
+        // Parse the attribute contents
+        let nested_metas = attr.parse_args_with(Punctuated::<Meta, Comma>::parse_terminated)?;
+        
+        for meta in nested_metas {
+            if let Some(ident) = meta.path().get_ident() {
+                if ident == "param_description" {
+                    // Check for duplicate param_description
+                    if seen_param_description {
+                        return Err(syn::Error::new_spanned(
+                            meta,
+                            "duplicate `param_description` attribute",
+                        ));
+                    }
+                    seen_param_description = true;
+                    
+                    // Validate that it has a string literal value
+                    if let syn::Expr::Lit(syn::ExprLit {
+                        lit: syn::Lit::Str(_),
+                        ..
+                    }) = &meta
+                        .require_name_value()
+                        .map_err(extend_err_msg(" and it must be a string literal"))?
+                        .value
+                    {
+                        // Convert param_description from wasm_export to wasm_bindgen format
+                        wasm_bindgen_metas.push(meta);
+                    } else {
+                        return Err(syn::Error::new_spanned(meta, "expected string literal"));
+                    }
+                }
+                // Add support for other parameter-level attributes here if needed
+            }
+        }
+        
+        Ok(wasm_bindgen_metas)
+    }
+
+    /// Cleans wasm_export attributes from function parameters (for cleaning original functions)
+    pub fn clean_parameter_attributes(inputs: &mut Punctuated<FnArg, Comma>) {
+        for input in inputs.iter_mut() {
+            if let FnArg::Typed(pat_type) = input {
+                pat_type.attrs.retain(|attr| !attr.path().is_ident("wasm_export"));
+            }
+        }
+    }
+
     /// Creates the function name from the original name, it is appended by __wasm_export
     pub fn populate_name(org_fn_ident: &Ident) -> Ident {
         Ident::new(
@@ -244,7 +375,7 @@ mod tests {
             return_type: parse_quote!(SomeType),
             preserve_js_class: None,
         };
-        let result = WasmExportFunctionBuilder::build_export_method(&method, wasm_export_fn_config);
+        let result = WasmExportFunctionBuilder::build_export_method(&method, wasm_export_fn_config).unwrap();
         let expected = parse_quote!(
             #[allow(non_snake_case)]
             #[wasm_bindgen(some_forward_attr)]
@@ -263,7 +394,7 @@ mod tests {
             return_type: parse_quote!(SomeType),
             preserve_js_class: Some(Span::call_site()),
         };
-        let result = WasmExportFunctionBuilder::build_export_method(&method, wasm_export_fn_config);
+        let result = WasmExportFunctionBuilder::build_export_method(&method, wasm_export_fn_config).unwrap();
         let expected = parse_quote!(
             #[allow(non_snake_case)]
             #[wasm_bindgen(some_forward_attr)]
@@ -302,7 +433,7 @@ mod tests {
             return_type: parse_quote!(SomeType),
             preserve_js_class: None,
         };
-        let result = WasmExportFunctionBuilder::build_export_function(&func, wasm_export_fn_config);
+        let result = WasmExportFunctionBuilder::build_export_function(&func, wasm_export_fn_config).unwrap();
         let expected = parse_quote!(
             #[allow(non_snake_case)]
             #[wasm_bindgen(some_forward_attr)]
@@ -321,7 +452,7 @@ mod tests {
             return_type: parse_quote!(SomeType),
             preserve_js_class: Some(Span::call_site()),
         };
-        let result = WasmExportFunctionBuilder::build_export_function(&func, wasm_export_fn_config);
+        let result = WasmExportFunctionBuilder::build_export_function(&func, wasm_export_fn_config).unwrap();
         let expected = parse_quote!(
             #[allow(non_snake_case)]
             #[wasm_bindgen(some_forward_attr)]

@@ -46,7 +46,10 @@ pub fn parse(func: &mut ItemFn, mut top_attrs: WasmExportAttrs) -> Result<TokenS
         return_type,
         preserve_js_class,
     };
-    let export_fn = WasmExportFunctionBuilder::build_export_function(func, config);
+    let export_fn = WasmExportFunctionBuilder::build_export_function(func, config)?;
+
+    // Clean wasm_export attributes from original function parameters
+    WasmExportFunctionBuilder::clean_parameter_attributes(&mut func.sig.inputs);
 
     // Combine original and exported function tokens
     let output = quote! {

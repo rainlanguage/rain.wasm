@@ -56,7 +56,10 @@ pub fn parse(impl_block: &mut ItemImpl, top_attrs: WasmExportAttrs) -> Result<To
                         preserve_js_class,
                     };
                     let export_method =
-                        WasmExportFunctionBuilder::build_export_method(method, config);
+                        WasmExportFunctionBuilder::build_export_method(method, config)?;
+
+                    // Clean wasm_export attributes from original method parameters
+                    WasmExportFunctionBuilder::clean_parameter_attributes(&mut method.sig.inputs);
 
                     export_items.push(ImplItem::Fn(export_method));
                 } else {
