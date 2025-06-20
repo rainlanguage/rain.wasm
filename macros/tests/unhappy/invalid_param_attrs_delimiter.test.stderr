@@ -1,0 +1,11 @@
+error: expected `,`
+  --> tests/unhappy/invalid_param_attrs_delimiter.test.rs:10:50
+   |
+10 |         #[wasm_export(param_description = "first"; param_description = "second")]
+   |                                                  ^
+
+error: expected string literal
+  --> tests/unhappy/invalid_param_attrs_delimiter.test.rs:21:23
+   |
+21 |         #[wasm_export(param_description = "test" - something_else)]
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

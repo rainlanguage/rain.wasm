@@ -49,4 +49,13 @@ impl TestStruct {
     pub fn get_age(&self, user_id: u32) -> Result<u32, Error> {
         Ok(25)
     }
+
+    #[wasm_export(return_description = "the number at the given index")]
+    pub fn number(
+        &self,
+        #[wasm_export(param_description = "the index of the number to be returned")]
+        index: u32,
+    ) -> Result<u32, Error> {
+        Ok(index * 2)
+    }
 }

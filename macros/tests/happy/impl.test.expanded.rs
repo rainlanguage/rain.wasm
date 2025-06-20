@@ -112,6 +112,9 @@ impl TestStruct {
     pub fn get_age(&self, user_id: u32) -> Result<u32, Error> {
         Ok(25)
     }
+    pub fn number(&self, index: u32) -> Result<u32, Error> {
+        Ok(index * 2)
+    }
 }
 #[wasm_bindgen(some_top_wbg_attr = "something", some_other_wbg_attr)]
 impl TestStruct {
@@ -137,5 +140,17 @@ impl TestStruct {
     )]
     pub fn get_age__wasm_export(&self, user_id: u32) -> WasmEncodedResult<u32> {
         self.get_age(user_id).into()
+    }
+    #[allow(non_snake_case)]
+    #[wasm_bindgen(
+        unchecked_return_type = "WasmEncodedResult<u32>",
+        return_description = "the number at the given index"
+    )]
+    pub fn number__wasm_export(
+        &self,
+        #[wasm_bindgen(param_description = "the index of the number to be returned")]
+        index: u32,
+    ) -> WasmEncodedResult<u32> {
+        self.number(index).into()
     }
 }
