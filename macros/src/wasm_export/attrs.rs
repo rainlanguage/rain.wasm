@@ -18,6 +18,7 @@ impl AttrKeys {
     pub const WASM_EXPORT: &'static str = "wasm_export";
     pub const PRESERVE_JS_CLASS: &'static str = "preserve_js_class";
     pub const UNCHECKED_RETURN_TYPE: &'static str = "unchecked_return_type";
+    pub const RETURN_DESCRIPTION: &'static str = "return_description";
 }
 
 /// Struct that holds the parsed wasm_export attributes details
@@ -27,6 +28,7 @@ pub struct WasmExportAttrs {
     pub unchecked_return_type: Option<(String, Span)>,
     pub should_skip: Option<Span>,
     pub preserve_js_class: Option<Span>,
+    pub return_description: Option<(String, Span)>,
 }
 
 impl Parse for WasmExportAttrs {
@@ -79,6 +81,13 @@ impl WasmExportAttrs {
             ));
         }
 
+        // handle return description attr for exporting item's wasm_bindgen macro invocation
+        if let Some(desc) = self.return_description.as_ref().map(|v| &v.0) {
+            self.forward_attrs.push(syn::parse_quote!(
+                return_description = #desc
+            ));
+        }
+
         return_type
     }
 
@@ -101,6 +110,25 @@ impl WasmExportAttrs {
                         .value
                     {
                         self.unchecked_return_type = Some((str.value(), meta.span()));
+                    } else {
+                        return Err(Error::new_spanned(meta, "expected string literal"));
+                    }
+                }
+                Some(AttrKeys::RETURN_DESCRIPTION) => {
+                    if self.return_description.is_some() {
+                        return Err(Error::new_spanned(
+                            meta,
+                            "duplicate `return_description` attribute",
+                        ));
+                    } else if let syn::Expr::Lit(syn::ExprLit {
+                        lit: syn::Lit::Str(str),
+                        ..
+                    }) = &meta
+                        .require_name_value()
+                        .map_err(extend_err_msg(" and it must be a string literal"))?
+                        .value
+                    {
+                        self.return_description = Some((str.value(), meta.span()));
                     } else {
                         return Err(Error::new_spanned(meta, "expected string literal"));
                     }
@@ -238,6 +266,7 @@ mod tests {
             should_skip: None,
             unchecked_return_type: Some(("SomeOverrideType".to_string(), Span::call_site())),
             preserve_js_class: None,
+            return_description: None,
         };
         let result = wasm_export_attrs.handle_return_type(&ret_type).unwrap();
 
@@ -251,6 +280,7 @@ mod tests {
             should_skip: None,
             unchecked_return_type: Some(("SomeOverrideType".to_string(), Span::call_site())),
             preserve_js_class: None,
+            return_description: None,
         };
         assert!(wasm_export_attrs.should_skip.is_none());
         assert_eq!(
@@ -271,6 +301,7 @@ mod tests {
             should_skip: None,
             unchecked_return_type: None,
             preserve_js_class: None,
+            return_description: None,
         };
         let result = wasm_export_attrs.handle_return_type(&ret_type).unwrap();
 
@@ -284,6 +315,7 @@ mod tests {
             should_skip: None,
             unchecked_return_type: None,
             preserve_js_class: None,
+            return_description: None,
         };
         assert!(wasm_export_attrs.should_skip.is_none());
         assert!(wasm_export_attrs.unchecked_return_type.is_none());
@@ -475,5 +507,99 @@ mod tests {
 
         let output: ReturnType = parse_quote!();
         assert!(WasmExportAttrs::try_extract_result_inner_type(&output).is_none());
+    }
+
+    #[test]
+    fn test_return_description_parsing() {
+        // Test basic return_description parsing
+        let input = TokenStream::from_str(r#"return_description = "returns the sum of inputs""#).unwrap();
+        let seq = Punctuated::<Meta, Token![,]>::parse_terminated
+            .parse2(input)
+            .unwrap();
+        let mut wasm_export_attrs = WasmExportAttrs::default();
+        wasm_export_attrs.handle_attrs_sequence(seq).unwrap();
+        assert!(wasm_export_attrs.return_description.is_some());
+        assert_eq!(
+            wasm_export_attrs.return_description.unwrap().0,
+            "returns the sum of inputs"
+        );
+
+        // Test duplicate return_description error
+        let input = TokenStream::from_str(
+            r#"return_description = "first desc", return_description = "second desc""#,
+        ).unwrap();
+        let seq = Punctuated::<Meta, Token![,]>::parse_terminated
+            .parse2(input)
+            .unwrap();
+        let mut wasm_export_attrs = WasmExportAttrs::default();
+        let err = wasm_export_attrs.handle_attrs_sequence(seq).unwrap_err();
+        assert_eq!(err.to_string(), "duplicate `return_description` attribute");
+
+        // Test invalid return_description without value
+        let input = TokenStream::from_str(r#"return_description"#).unwrap();
+        let seq = Punctuated::<Meta, Token![,]>::parse_terminated
+            .parse2(input)
+            .unwrap();
+        let mut wasm_export_attrs = WasmExportAttrs::default();
+        let err = wasm_export_attrs.handle_attrs_sequence(seq).unwrap_err();
+        assert_eq!(err.to_string(), "expected a value for this attribute: `return_description = ...` and it must be a string literal");
+
+        // Test invalid return_description with non-string literal
+        let input = TokenStream::from_str(r#"return_description = notStringLiteral"#).unwrap();
+        let seq = Punctuated::<Meta, Token![,]>::parse_terminated
+            .parse2(input)
+            .unwrap();
+        let mut wasm_export_attrs = WasmExportAttrs::default();
+        let err = wasm_export_attrs.handle_attrs_sequence(seq).unwrap_err();
+        assert_eq!(err.to_string(), "expected string literal");
+    }
+
+    #[test]
+    fn test_return_description_forwarding() {
+        let ret_type: ReturnType = parse_quote!(-> Result<u32, Error>);
+        let mut wasm_export_attrs = WasmExportAttrs {
+            forward_attrs: vec![],
+            should_skip: None,
+            unchecked_return_type: None,
+            preserve_js_class: None,
+            return_description: Some(("returns the calculated result".to_string(), Span::call_site())),
+        };
+        let result = wasm_export_attrs.handle_return_type(&ret_type).unwrap();
+
+        let expected_type: Type = parse_quote!(u32);
+        assert_eq!(result, expected_type);
+
+        // Should have both unchecked_return_type and return_description in forward_attrs
+        assert_eq!(wasm_export_attrs.forward_attrs.len(), 2);
+        assert_eq!(
+            wasm_export_attrs.forward_attrs,
+            vec![
+                parse_quote!(unchecked_return_type = "WasmEncodedResult<u32>"),
+                parse_quote!(return_description = "returns the calculated result")
+            ]
+        );
+    }
+
+    #[test]
+    fn test_return_description_with_mixed_attrs() {
+        // Test return_description mixed with other attributes
+        let input = TokenStream::from_str(
+            r#"js_name = "customName", return_description = "custom description", catch"#,
+        ).unwrap();
+        let seq = Punctuated::<Meta, Token![,]>::parse_terminated
+            .parse2(input)
+            .unwrap();
+        let mut wasm_export_attrs = WasmExportAttrs::default();
+        wasm_export_attrs.handle_attrs_sequence(seq).unwrap();
+        
+        assert!(wasm_export_attrs.return_description.is_some());
+        assert_eq!(
+            wasm_export_attrs.return_description.unwrap().0,
+            "custom description"
+        );
+        assert_eq!(
+            wasm_export_attrs.forward_attrs,
+            vec![parse_quote!(js_name = "customName"), parse_quote!(catch)]
+        );
     }
 }

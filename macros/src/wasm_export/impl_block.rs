@@ -18,6 +18,12 @@ pub fn parse(impl_block: &mut ItemImpl, top_attrs: WasmExportAttrs) -> Result<To
             "unexpected `preserve_js_class` attribute, it can only be used for impl block methods or standalone functions",
         ));
     }
+    if let Some((_, span)) = top_attrs.return_description {
+        return Err(Error::new(
+            span,
+            "unexpected `return_description` attribute, it can only be used for impl block methods or standalone functions",
+        ));
+    }
 
     // create vector to store exported items
     // and loop over items inside of the impl block and process each method

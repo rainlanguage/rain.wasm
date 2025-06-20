@@ -165,6 +165,7 @@ mod tests {
             forward_attrs: vec![parse_quote!(some_forward_attr)],
             unchecked_return_type: Some(("string".to_string(), Span::call_site())),
             preserve_js_class: None,
+            return_description: None,
         };
         let result = parse(&mut method, wasm_export_attrs).unwrap();
         let expected: TokenStream = parse_quote!(
@@ -195,5 +196,65 @@ mod tests {
         );
         let err = parse(&mut method, WasmExportAttrs::default()).unwrap_err();
         assert_eq!(err.to_string(), "expected Result<T, E> return type");
+    }
+
+    #[test]
+    fn test_parse_standalone_fn_with_return_description() {
+        let mut func: ItemFn = parse_quote!(
+            pub fn add(a: u32, b: u32) -> Result<u32, Error> {
+                Ok(a + b)
+            }
+        );
+        let top_attrs: WasmExportAttrs = syn::parse_quote!(return_description = "sum of the inputs");
+        let result = parse(&mut func, top_attrs).unwrap();
+
+        let expected: TokenStream = parse_quote!(
+            pub fn add(a: u32, b: u32) -> Result<u32, Error> {
+                Ok(a + b)
+            }
+
+            #[allow(non_snake_case)]
+            #[wasm_bindgen(
+                unchecked_return_type = "WasmEncodedResult<u32>",
+                return_description = "sum of the inputs"
+            )]
+            pub fn add__wasm_export(a: u32, b: u32) -> WasmEncodedResult<u32> {
+                add(a, b).into()
+            }
+        );
+        assert_eq!(result.to_string(), expected.to_string());
+    }
+
+    #[test]
+    fn test_parse_standalone_fn_with_return_description_and_other_attrs() {
+        let mut func: ItemFn = parse_quote!(
+            pub async fn complex_calc(input: String) -> Result<i64, Error> {
+                Ok(42)
+            }
+        );
+        let top_attrs: WasmExportAttrs = syn::parse_quote!(
+            js_name = "complexCalculation", 
+            return_description = "complex calculation result", 
+            catch
+        );
+        let result = parse(&mut func, top_attrs).unwrap();
+
+        let expected: TokenStream = parse_quote!(
+            pub async fn complex_calc(input: String) -> Result<i64, Error> {
+                Ok(42)
+            }
+
+            #[allow(non_snake_case)]
+            #[wasm_bindgen(
+                js_name = "complexCalculation",
+                catch,
+                unchecked_return_type = "WasmEncodedResult<i64>",
+                return_description = "complex calculation result"
+            )]
+            pub async fn complex_calc__wasm_export(input: String) -> WasmEncodedResult<i64> {
+                complex_calc(input).await.into()
+            }
+        );
+        assert_eq!(result.to_string(), expected.to_string());
     }
 }
