@@ -1,0 +1,5 @@
+error: duplicate `param_description` attribute
+  --> tests/unhappy/dup_param_description_attr.test.rs:10:64
+   |
+10 |         #[wasm_export(param_description = "first description", param_description = "second description")]
+   |                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

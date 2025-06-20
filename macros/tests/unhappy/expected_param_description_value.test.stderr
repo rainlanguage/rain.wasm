@@ -1,0 +1,5 @@
+error: expected a value for this attribute: `param_description = ...` and it must be a string literal
+ --> tests/unhappy/expected_param_description_value.test.rs:8:19
+  |
+8 |     #[wasm_export(param_description)]
+  |                   ^^^^^^^^^^^^^^^^^

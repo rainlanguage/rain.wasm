@@ -106,6 +106,15 @@ impl TestStruct {
     pub fn returns_num_array(&mut self) -> Result<Vec<u8>, Error> {
         Ok(Vec::new())
     }
+    pub fn get_name(&self) -> Result<String, Error> {
+        Ok("test".to_string())
+    }
+    pub fn get_age(&self, user_id: u32) -> Result<u32, Error> {
+        Ok(25)
+    }
+    pub fn number(&self, index: u32) -> Result<u32, Error> {
+        Ok(index * 2)
+    }
 }
 #[wasm_bindgen(some_top_wbg_attr = "something", some_other_wbg_attr)]
 impl TestStruct {
@@ -113,5 +122,35 @@ impl TestStruct {
     #[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<Vec < u8 >>")]
     pub fn returns_num_array__wasm_export(&mut self) -> WasmEncodedResult<Vec<u8>> {
         self.returns_num_array().into()
+    }
+    #[allow(non_snake_case)]
+    #[wasm_bindgen(
+        unchecked_return_type = "WasmEncodedResult<String>",
+        return_description = "gets the user's name"
+    )]
+    pub fn get_name__wasm_export(&self) -> WasmEncodedResult<String> {
+        self.get_name().into()
+    }
+    #[allow(non_snake_case)]
+    #[wasm_bindgen(
+        js_name = "getUserAge",
+        catch,
+        unchecked_return_type = "WasmEncodedResult<u32>",
+        return_description = "returns user age in years"
+    )]
+    pub fn get_age__wasm_export(&self, user_id: u32) -> WasmEncodedResult<u32> {
+        self.get_age(user_id).into()
+    }
+    #[allow(non_snake_case)]
+    #[wasm_bindgen(
+        unchecked_return_type = "WasmEncodedResult<u32>",
+        return_description = "the number at the given index"
+    )]
+    pub fn number__wasm_export(
+        &self,
+        #[wasm_bindgen(param_description = "the index of the number to be returned")]
+        index: u32,
+    ) -> WasmEncodedResult<u32> {
+        self.number(index).into()
     }
 }
