@@ -1,3 +1,7 @@
 target
 Cargo.lock
 cache
+CLAUDE.md
+.ai_docs
+.ai_spec
+.claude
