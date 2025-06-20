@@ -512,7 +512,8 @@ mod tests {
     #[test]
     fn test_return_description_parsing() {
         // Test basic return_description parsing
-        let input = TokenStream::from_str(r#"return_description = "returns the sum of inputs""#).unwrap();
+        let input =
+            TokenStream::from_str(r#"return_description = "returns the sum of inputs""#).unwrap();
         let seq = Punctuated::<Meta, Token![,]>::parse_terminated
             .parse2(input)
             .unwrap();
@@ -527,7 +528,8 @@ mod tests {
         // Test duplicate return_description error
         let input = TokenStream::from_str(
             r#"return_description = "first desc", return_description = "second desc""#,
-        ).unwrap();
+        )
+        .unwrap();
         let seq = Punctuated::<Meta, Token![,]>::parse_terminated
             .parse2(input)
             .unwrap();
@@ -562,7 +564,10 @@ mod tests {
             should_skip: None,
             unchecked_return_type: None,
             preserve_js_class: None,
-            return_description: Some(("returns the calculated result".to_string(), Span::call_site())),
+            return_description: Some((
+                "returns the calculated result".to_string(),
+                Span::call_site(),
+            )),
         };
         let result = wasm_export_attrs.handle_return_type(&ret_type).unwrap();
 
@@ -585,13 +590,14 @@ mod tests {
         // Test return_description mixed with other attributes
         let input = TokenStream::from_str(
             r#"js_name = "customName", return_description = "custom description", catch"#,
-        ).unwrap();
+        )
+        .unwrap();
         let seq = Punctuated::<Meta, Token![,]>::parse_terminated
             .parse2(input)
             .unwrap();
         let mut wasm_export_attrs = WasmExportAttrs::default();
         wasm_export_attrs.handle_attrs_sequence(seq).unwrap();
-        
+
         assert!(wasm_export_attrs.return_description.is_some());
         assert_eq!(
             wasm_export_attrs.return_description.unwrap().0,

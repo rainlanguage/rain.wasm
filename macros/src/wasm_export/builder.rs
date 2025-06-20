@@ -3,6 +3,10 @@ use std::ops::Deref;
 use proc_macro2::{Span, TokenStream};
 use syn::{punctuated::Punctuated, token::Comma, Block, FnArg, Ident, ImplItemFn, ItemFn, Meta, Type};
 
+/// Type alias for the complex return type of process_function_parameters
+type ProcessFunctionParametersResult =
+    syn::Result<(bool, Punctuated<FnArg, Comma>, Punctuated<FnArg, Comma>)>;
+
 /// Enum to specify the type of the function
 pub enum FunctionType<'a> {
     /// Function is a method within an impl block (can be instance or static)
@@ -40,7 +44,7 @@ impl WasmExportFunctionBuilder {
 
         // set exported method name, it is appended with __wasm_export
         export_method.sig.ident = Self::populate_name(&method.sig.ident);
-        
+
         // process parameters to handle wasm_export attributes
         let (_, processed_params, _) = Self::process_function_parameters(&method.sig.inputs)?;
         export_method.sig.inputs = processed_params;
@@ -51,7 +55,9 @@ impl WasmExportFunctionBuilder {
         // forward attributes for exported method + allow none snake_case + doc comments
         export_method.attrs = Vec::new();
         export_method.attrs.extend(doc_comments);
-        export_method.attrs.push(syn::parse_quote!(#[allow(non_snake_case)]));
+        export_method
+            .attrs
+            .push(syn::parse_quote!(#[allow(non_snake_case)]));
         if !forward_attrs.is_empty() {
             export_method.attrs.push(syn::parse_quote!(
                 #[wasm_bindgen(#(#forward_attrs),*)]
@@ -77,7 +83,10 @@ impl WasmExportFunctionBuilder {
     /// that is, creating a new function that is exposed to wasm bindgen that calls the original
     /// function and converting the result of that call into a WasmEncodedResult and also forwards
     /// any wasm bindgen attributes to the exporting function
-    pub fn build_export_function(func: &ItemFn, config: WasmExportFunctionBuilderConfig) -> syn::Result<ItemFn> {
+    pub fn build_export_function(
+        func: &ItemFn,
+        config: WasmExportFunctionBuilderConfig,
+    ) -> syn::Result<ItemFn> {
         let WasmExportFunctionBuilderConfig {
             forward_attrs,
             return_type,
@@ -89,7 +98,7 @@ impl WasmExportFunctionBuilder {
 
         // set exported function name, it is appended with __wasm_export
         export_fn.sig.ident = Self::populate_name(&func.sig.ident);
-        
+
         // process parameters to handle wasm_export attributes
         let (_, processed_params, _) = Self::process_function_parameters(&func.sig.inputs)?;
         export_fn.sig.inputs = processed_params;
@@ -100,7 +109,9 @@ impl WasmExportFunctionBuilder {
         // forward attributes for exported function + allow none snake_case + doc comments
         export_fn.attrs = Vec::new();
         export_fn.attrs.extend(doc_comments);
-        export_fn.attrs.push(syn::parse_quote!(#[allow(non_snake_case)]));
+        export_fn
+            .attrs
+            .push(syn::parse_quote!(#[allow(non_snake_case)]));
         if !forward_attrs.is_empty() {
             export_fn.attrs.push(syn::parse_quote!(
                 #[wasm_bindgen(#(#forward_attrs),*)]
@@ -239,7 +250,7 @@ impl WasmExportFunctionBuilder {
     /// Returns: (has_self_receiver, processed_inputs_for_wrapper, cleaned_inputs_for_original)
     pub fn process_function_parameters(
         inputs: &Punctuated<FnArg, Comma>,
-    ) -> syn::Result<(bool, Punctuated<FnArg, Comma>, Punctuated<FnArg, Comma>)> {
+    ) -> ProcessFunctionParametersResult {
         let mut has_self_receiver = false;
         let mut processed_inputs = Punctuated::new();
         let mut cleaned_inputs = Punctuated::new();
@@ -248,7 +259,7 @@ impl WasmExportFunctionBuilder {
             match input {
                 FnArg::Receiver(receiver) => {
                     has_self_receiver = true;
-                    
+
                     // Check if receiver has any wasm_export attributes - this should be an error
                     for attr in &receiver.attrs {
                         if attr.path().is_ident("wasm_export") {
@@ -258,18 +269,18 @@ impl WasmExportFunctionBuilder {
                             ));
                         }
                     }
-                    
+
                     processed_inputs.push(input.clone());
                     cleaned_inputs.push(input.clone());
                 }
                 FnArg::Typed(pat_type) => {
                     let mut new_pat_type = pat_type.clone();
                     let mut cleaned_pat_type = pat_type.clone();
-                    
+
                     // Process attributes on this parameter
                     let mut wasm_bindgen_attrs = Vec::new();
                     let mut other_attrs = Vec::new();
-                    
+
                     for attr in &pat_type.attrs {
                         if attr.path().is_ident("wasm_export") {
                             // Parse wasm_export attribute and convert to wasm_bindgen
@@ -280,16 +291,18 @@ impl WasmExportFunctionBuilder {
                             other_attrs.push(attr.clone());
                         }
                     }
-                    
+
                     // For wrapper function: combine processed wasm_bindgen attrs with other attrs
-                    new_pat_type.attrs = other_attrs.clone();
+                    new_pat_type.attrs.clone_from(&other_attrs);
                     if !wasm_bindgen_attrs.is_empty() {
-                        new_pat_type.attrs.push(syn::parse_quote!(#[wasm_bindgen(#(#wasm_bindgen_attrs),*)]));
+                        new_pat_type
+                            .attrs
+                            .push(syn::parse_quote!(#[wasm_bindgen(#(#wasm_bindgen_attrs),*)]));
                     }
-                    
+
                     // For original function: only other attrs (wasm_export removed)
                     cleaned_pat_type.attrs = other_attrs;
-                    
+
                     processed_inputs.push(FnArg::Typed(new_pat_type));
                     cleaned_inputs.push(FnArg::Typed(cleaned_pat_type));
                 }
@@ -303,18 +316,18 @@ impl WasmExportFunctionBuilder {
     fn process_parameter_wasm_export_attr(attr: &syn::Attribute) -> syn::Result<Vec<syn::Meta>> {
         use syn::{punctuated::Punctuated, token::Comma, Meta};
         use super::error::extend_err_msg;
-        
+
         let mut wasm_bindgen_metas = Vec::new();
         let mut seen_param_description = false;
-        
+
         // Handle empty wasm_export attribute
         if matches!(attr.meta, Meta::Path(_)) {
             return Ok(wasm_bindgen_metas);
         }
-        
+
         // Parse the attribute contents
         let nested_metas = attr.parse_args_with(Punctuated::<Meta, Comma>::parse_terminated)?;
-        
+
         for meta in nested_metas {
             if let Some(ident) = meta.path().get_ident() {
                 if ident == "param_description" {
@@ -326,7 +339,7 @@ impl WasmExportFunctionBuilder {
                         ));
                     }
                     seen_param_description = true;
-                    
+
                     // Validate that it has a string literal value
                     if let syn::Expr::Lit(syn::ExprLit {
                         lit: syn::Lit::Str(_),
@@ -345,7 +358,7 @@ impl WasmExportFunctionBuilder {
                 // Add support for other parameter-level attributes here if needed
             }
         }
-        
+
         Ok(wasm_bindgen_metas)
     }
 
@@ -353,7 +366,9 @@ impl WasmExportFunctionBuilder {
     pub fn clean_parameter_attributes(inputs: &mut Punctuated<FnArg, Comma>) {
         for input in inputs.iter_mut() {
             if let FnArg::Typed(pat_type) = input {
-                pat_type.attrs.retain(|attr| !attr.path().is_ident("wasm_export"));
+                pat_type
+                    .attrs
+                    .retain(|attr| !attr.path().is_ident("wasm_export"));
             }
         }
     }
@@ -398,7 +413,8 @@ mod tests {
             return_type: parse_quote!(SomeType),
             preserve_js_class: None,
         };
-        let result = WasmExportFunctionBuilder::build_export_method(&method, wasm_export_fn_config).unwrap();
+        let result =
+            WasmExportFunctionBuilder::build_export_method(&method, wasm_export_fn_config).unwrap();
         let expected = parse_quote!(
             #[allow(non_snake_case)]
             #[wasm_bindgen(some_forward_attr)]
@@ -417,7 +433,8 @@ mod tests {
             return_type: parse_quote!(SomeType),
             preserve_js_class: Some(Span::call_site()),
         };
-        let result = WasmExportFunctionBuilder::build_export_method(&method, wasm_export_fn_config).unwrap();
+        let result =
+            WasmExportFunctionBuilder::build_export_method(&method, wasm_export_fn_config).unwrap();
         let expected = parse_quote!(
             #[allow(non_snake_case)]
             #[wasm_bindgen(some_forward_attr)]
@@ -456,7 +473,8 @@ mod tests {
             return_type: parse_quote!(SomeType),
             preserve_js_class: None,
         };
-        let result = WasmExportFunctionBuilder::build_export_function(&func, wasm_export_fn_config).unwrap();
+        let result =
+            WasmExportFunctionBuilder::build_export_function(&func, wasm_export_fn_config).unwrap();
         let expected = parse_quote!(
             #[allow(non_snake_case)]
             #[wasm_bindgen(some_forward_attr)]
@@ -475,7 +493,8 @@ mod tests {
             return_type: parse_quote!(SomeType),
             preserve_js_class: Some(Span::call_site()),
         };
-        let result = WasmExportFunctionBuilder::build_export_function(&func, wasm_export_fn_config).unwrap();
+        let result =
+            WasmExportFunctionBuilder::build_export_function(&func, wasm_export_fn_config).unwrap();
         let expected = parse_quote!(
             #[allow(non_snake_case)]
             #[wasm_bindgen(some_forward_attr)]
@@ -805,17 +824,20 @@ mod tests {
             .parse2(stream)
             .unwrap();
         let result = WasmExportFunctionBuilder::process_function_parameters(&inputs).unwrap();
-        
+
         assert_eq!(result.0, false); // no self receiver
         assert_eq!(result.1.len(), 2); // processed inputs
         assert_eq!(result.2.len(), 2); // cleaned inputs
-        
+
         // Both processed and cleaned should be identical when no wasm_export attrs
         assert_eq!(result.1.len(), result.2.len());
         // Check that first parameter is the same
         if let (FnArg::Typed(processed), FnArg::Typed(cleaned)) = (&result.1[0], &result.2[0]) {
             assert_eq!(processed.attrs.len(), cleaned.attrs.len());
-            assert_eq!(processed.pat.to_token_stream().to_string(), cleaned.pat.to_token_stream().to_string());
+            assert_eq!(
+                processed.pat.to_token_stream().to_string(),
+                cleaned.pat.to_token_stream().to_string()
+            );
         }
     }
 
@@ -823,24 +845,30 @@ mod tests {
     fn test_process_function_parameters_with_param_description() {
         // Test parameter processing with param_description
         let stream = TokenStream::from_str(
-            r#"#[wasm_export(param_description = "first param")] arg1: String, arg2: u32"#
-        ).unwrap();
+            r#"#[wasm_export(param_description = "first param")] arg1: String, arg2: u32"#,
+        )
+        .unwrap();
         let inputs = Punctuated::<FnArg, Comma>::parse_terminated
             .parse2(stream)
             .unwrap();
         let result = WasmExportFunctionBuilder::process_function_parameters(&inputs).unwrap();
-        
+
         assert_eq!(result.0, false); // no self receiver
         assert_eq!(result.1.len(), 2); // processed inputs
         assert_eq!(result.2.len(), 2); // cleaned inputs
-        
+
         // Processed should have wasm_bindgen attribute, cleaned should not
         let processed_first = &result.1[0];
         let cleaned_first = &result.2[0];
-        
-        if let (FnArg::Typed(processed_pat), FnArg::Typed(cleaned_pat)) = (processed_first, cleaned_first) {
+
+        if let (FnArg::Typed(processed_pat), FnArg::Typed(cleaned_pat)) =
+            (processed_first, cleaned_first)
+        {
             // Processed should have wasm_bindgen attribute
-            assert!(processed_pat.attrs.iter().any(|attr| attr.path().is_ident("wasm_bindgen")));
+            assert!(processed_pat
+                .attrs
+                .iter()
+                .any(|attr| attr.path().is_ident("wasm_bindgen")));
             // Cleaned should not have any attributes
             assert!(cleaned_pat.attrs.is_empty());
         } else {
@@ -856,7 +884,7 @@ mod tests {
             .parse2(stream)
             .unwrap();
         let result = WasmExportFunctionBuilder::process_function_parameters(&inputs).unwrap();
-        
+
         assert_eq!(result.0, true); // has self receiver
         assert_eq!(result.1.len(), 2); // processed inputs (self + arg1)
         assert_eq!(result.2.len(), 2); // cleaned inputs (self + arg1)
@@ -866,24 +894,28 @@ mod tests {
     fn test_process_function_parameters_self_with_wasm_export_error() {
         // Test that wasm_export on self receiver produces error
         let stream = TokenStream::from_str(
-            r#"#[wasm_export(param_description = "self desc")] &self, arg1: String"#
-        ).unwrap();
+            r#"#[wasm_export(param_description = "self desc")] &self, arg1: String"#,
+        )
+        .unwrap();
         let inputs = Punctuated::<FnArg, Comma>::parse_terminated
             .parse2(stream)
             .unwrap();
         let result = WasmExportFunctionBuilder::process_function_parameters(&inputs);
-        
+
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert!(error.to_string().contains("param_description` cannot be used on receiver parameters"));
+        assert!(error
+            .to_string()
+            .contains("param_description` cannot be used on receiver parameters"));
     }
 
     #[test]
     fn test_process_parameter_wasm_export_attr_valid() {
         // Test valid param_description processing
-        let attr: syn::Attribute = syn::parse_quote!(#[wasm_export(param_description = "test description")]);
+        let attr: syn::Attribute =
+            syn::parse_quote!(#[wasm_export(param_description = "test description")]);
         let result = WasmExportFunctionBuilder::process_parameter_wasm_export_attr(&attr).unwrap();
-        
+
         assert_eq!(result.len(), 1);
         let meta = &result[0];
         assert!(meta.path().is_ident("param_description"));
@@ -896,10 +928,12 @@ mod tests {
             #[wasm_export(param_description = "first", param_description = "second")]
         );
         let result = WasmExportFunctionBuilder::process_parameter_wasm_export_attr(&attr);
-        
+
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert!(error.to_string().contains("duplicate `param_description` attribute"));
+        assert!(error
+            .to_string()
+            .contains("duplicate `param_description` attribute"));
     }
 
     #[test]
@@ -907,7 +941,7 @@ mod tests {
         // Test invalid value type error
         let attr: syn::Attribute = syn::parse_quote!(#[wasm_export(param_description = something)]);
         let result = WasmExportFunctionBuilder::process_parameter_wasm_export_attr(&attr);
-        
+
         assert!(result.is_err());
         let error = result.unwrap_err();
         assert!(error.to_string().contains("expected string literal"));
@@ -918,29 +952,32 @@ mod tests {
         // Test missing value error
         let attr: syn::Attribute = syn::parse_quote!(#[wasm_export(param_description)]);
         let result = WasmExportFunctionBuilder::process_parameter_wasm_export_attr(&attr);
-        
+
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert!(error.to_string().contains("expected a value for this attribute"));
+        assert!(error
+            .to_string()
+            .contains("expected a value for this attribute"));
     }
 
     #[test]
     fn test_clean_parameter_attributes() {
         // Test cleaning wasm_export attributes from parameters
         let stream = TokenStream::from_str(
-            r#"#[wasm_export(param_description = "test")] #[other_attr] arg1: String, arg2: u32"#
-        ).unwrap();
+            r#"#[wasm_export(param_description = "test")] #[other_attr] arg1: String, arg2: u32"#,
+        )
+        .unwrap();
         let mut inputs = Punctuated::<FnArg, Comma>::parse_terminated
             .parse2(stream)
             .unwrap();
-        
+
         // Before cleaning - should have both attributes
         if let FnArg::Typed(pat_type) = &inputs[0] {
             assert_eq!(pat_type.attrs.len(), 2);
         }
-        
+
         WasmExportFunctionBuilder::clean_parameter_attributes(&mut inputs);
-        
+
         // After cleaning - should only have other_attr
         if let FnArg::Typed(pat_type) = &inputs[0] {
             assert_eq!(pat_type.attrs.len(), 1);
@@ -959,10 +996,10 @@ mod tests {
                 Ok(())
             }
         );
-        
+
         let doc_comments = WasmExportFunctionBuilder::extract_doc_comments(&func.attrs);
         assert_eq!(doc_comments.len(), 2);
-        
+
         // Verify both are doc attributes
         for comment in &doc_comments {
             assert!(comment.path().is_ident("doc"));
@@ -979,7 +1016,7 @@ mod tests {
                 Ok(())
             }
         );
-        
+
         let doc_comments = WasmExportFunctionBuilder::extract_doc_comments(&func.attrs);
         assert_eq!(doc_comments.len(), 0);
     }
@@ -998,10 +1035,10 @@ mod tests {
                 Ok(())
             }
         );
-        
+
         let doc_comments = WasmExportFunctionBuilder::extract_doc_comments(&func.attrs);
         assert_eq!(doc_comments.len(), 3);
-        
+
         // Verify all are doc attributes
         for comment in &doc_comments {
             assert!(comment.path().is_ident("doc"));
@@ -1023,16 +1060,26 @@ mod tests {
             return_type: parse_quote!(String),
             preserve_js_class: None,
         };
-        
+
         let result = WasmExportFunctionBuilder::build_export_method(&method, config).unwrap();
-        
+
         // Check that doc comments are present in export method
-        let doc_count = result.attrs.iter().filter(|attr| attr.path().is_ident("doc")).count();
+        let doc_count = result
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("doc"))
+            .count();
         assert_eq!(doc_count, 2);
-        
+
         // Check that other attributes are also present
-        assert!(result.attrs.iter().any(|attr| attr.path().is_ident("allow")));
-        assert!(result.attrs.iter().any(|attr| attr.path().is_ident("wasm_bindgen")));
+        assert!(result
+            .attrs
+            .iter()
+            .any(|attr| attr.path().is_ident("allow")));
+        assert!(result
+            .attrs
+            .iter()
+            .any(|attr| attr.path().is_ident("wasm_bindgen")));
     }
 
     #[test]
@@ -1049,15 +1096,22 @@ mod tests {
             return_type: parse_quote!(String),
             preserve_js_class: None,
         };
-        
+
         let result = WasmExportFunctionBuilder::build_export_method(&method, config).unwrap();
-        
+
         // Check that no doc comments are present
-        let doc_count = result.attrs.iter().filter(|attr| attr.path().is_ident("doc")).count();
+        let doc_count = result
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("doc"))
+            .count();
         assert_eq!(doc_count, 0);
-        
+
         // Check that other attributes are still present
-        assert!(result.attrs.iter().any(|attr| attr.path().is_ident("allow")));
+        assert!(result
+            .attrs
+            .iter()
+            .any(|attr| attr.path().is_ident("allow")));
     }
 
     #[test]
@@ -1078,16 +1132,26 @@ mod tests {
             return_type: parse_quote!(u32),
             preserve_js_class: None,
         };
-        
+
         let result = WasmExportFunctionBuilder::build_export_function(&func, config).unwrap();
-        
+
         // Check that doc comments are present in export function
-        let doc_count = result.attrs.iter().filter(|attr| attr.path().is_ident("doc")).count();
+        let doc_count = result
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("doc"))
+            .count();
         assert_eq!(doc_count, 5); // 5 lines of doc comments (updated from incorrect 4)
-        
+
         // Check that other attributes are also present
-        assert!(result.attrs.iter().any(|attr| attr.path().is_ident("allow")));
-        assert!(result.attrs.iter().any(|attr| attr.path().is_ident("wasm_bindgen")));
+        assert!(result
+            .attrs
+            .iter()
+            .any(|attr| attr.path().is_ident("allow")));
+        assert!(result
+            .attrs
+            .iter()
+            .any(|attr| attr.path().is_ident("wasm_bindgen")));
     }
 
     #[test]
@@ -1103,16 +1167,26 @@ mod tests {
             return_type: parse_quote!(()),
             preserve_js_class: None,
         };
-        
+
         let result = WasmExportFunctionBuilder::build_export_function(&func, config).unwrap();
-        
+
         // Check that no doc comments are present
-        let doc_count = result.attrs.iter().filter(|attr| attr.path().is_ident("doc")).count();
+        let doc_count = result
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("doc"))
+            .count();
         assert_eq!(doc_count, 0);
-        
+
         // Check that other attributes are still present
-        assert!(result.attrs.iter().any(|attr| attr.path().is_ident("allow")));
-        assert!(result.attrs.iter().any(|attr| attr.path().is_ident("wasm_bindgen")));
+        assert!(result
+            .attrs
+            .iter()
+            .any(|attr| attr.path().is_ident("allow")));
+        assert!(result
+            .attrs
+            .iter()
+            .any(|attr| attr.path().is_ident("wasm_bindgen")));
     }
 
     #[test]
@@ -1130,13 +1204,17 @@ mod tests {
             return_type: parse_quote!(JsClass),
             preserve_js_class: Some(Span::call_site()),
         };
-        
+
         let result = WasmExportFunctionBuilder::build_export_function(&func, config).unwrap();
-        
+
         // Check that doc comments are present
-        let doc_count = result.attrs.iter().filter(|attr| attr.path().is_ident("doc")).count();
+        let doc_count = result
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("doc"))
+            .count();
         assert_eq!(doc_count, 2);
-        
+
         // Check that return type is JsValue for preserve_js_class
         match &result.sig.output {
             syn::ReturnType::Type(_, ty) => {
@@ -1160,24 +1238,30 @@ mod tests {
             forward_attrs: vec![
                 parse_quote!(js_name = "complexFunction"),
                 parse_quote!(catch),
-                parse_quote!(return_description = "a magic number")
+                parse_quote!(return_description = "a magic number"),
             ],
             return_type: parse_quote!(u32),
             preserve_js_class: None,
         };
-        
+
         let result = WasmExportFunctionBuilder::build_export_function(&func, config).unwrap();
-        
+
         // Check that doc comments are present
-        let doc_count = result.attrs.iter().filter(|attr| attr.path().is_ident("doc")).count();
+        let doc_count = result
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("doc"))
+            .count();
         assert_eq!(doc_count, 2);
-        
+
         // Check that wasm_bindgen attributes are present
-        let wasm_bindgen_attrs: Vec<_> = result.attrs.iter()
+        let wasm_bindgen_attrs: Vec<_> = result
+            .attrs
+            .iter()
             .filter(|attr| attr.path().is_ident("wasm_bindgen"))
             .collect();
         assert_eq!(wasm_bindgen_attrs.len(), 1);
-        
+
         // Check that the wasm_bindgen attribute contains all expected attributes
         let attr_tokens = quote!(#(#wasm_bindgen_attrs)*).to_string();
         assert!(attr_tokens.contains("js_name = \"complexFunction\""));
@@ -1190,13 +1274,13 @@ mod tests {
         // Test doc comments with special characters and formatting
         let func: ItemFn = parse_quote!(
             /// Function with `code`, **bold**, and *italic* markdown
-            /// 
+            ///
             /// # Examples
             /// ```rust
             /// let result = special_func("test");
             /// assert_eq!(result.unwrap(), "processed");
             /// ```
-            /// 
+            ///
             /// ## Notes
             /// - Supports Unicode: 🦀 Rust
             /// - Handles quotes: "double" and 'single'
@@ -1210,18 +1294,24 @@ mod tests {
             return_type: parse_quote!(String),
             preserve_js_class: None,
         };
-        
+
         let result = WasmExportFunctionBuilder::build_export_function(&func, config).unwrap();
-        
+
         // Check that all doc comment lines are preserved
-        let doc_count = result.attrs.iter().filter(|attr| attr.path().is_ident("doc")).count();
+        let doc_count = result
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("doc"))
+            .count();
         assert_eq!(doc_count, 12); // Should match the number of doc comment lines (updated count)
-        
+
         // Verify that special characters are preserved in doc comments
-        let doc_attrs: Vec<_> = result.attrs.iter()
+        let doc_attrs: Vec<_> = result
+            .attrs
+            .iter()
             .filter(|attr| attr.path().is_ident("doc"))
             .collect();
-        
+
         // Check that some special content is preserved
         let all_docs = quote!(#(#doc_attrs)*).to_string();
         assert!(all_docs.contains("🦀 Rust"));
@@ -1229,19 +1319,19 @@ mod tests {
         assert!(all_docs.contains("@#$%^&*()"));
     }
 
-    #[test] 
+    #[test]
     fn test_build_export_method_doc_comments_comprehensive() {
         // Test comprehensive doc comment scenarios for methods
         let method: ImplItemFn = parse_quote!(
             /// This method performs advanced calculations
-            /// 
+            ///
             /// It takes multiple parameters and returns a complex result.
             /// The implementation uses sophisticated algorithms.
-            /// 
+            ///
             /// # Parameters
             /// - `self`: The instance reference
             /// - `input`: The input value to process
-            /// 
+            ///
             /// # Returns
             /// A Result containing the processed value or an error
             pub fn advanced_method(&self, input: u64) -> Result<ProcessedValue, Error> {
@@ -1253,21 +1343,27 @@ mod tests {
             return_type: parse_quote!(ProcessedValue),
             preserve_js_class: None,
         };
-        
+
         let result = WasmExportFunctionBuilder::build_export_method(&method, config).unwrap();
-        
+
         // Check that all doc comments are preserved
-        let doc_count = result.attrs.iter().filter(|attr| attr.path().is_ident("doc")).count();
+        let doc_count = result
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("doc"))
+            .count();
         assert_eq!(doc_count, 11); // Count the doc comment lines
-        
+
         // Check method name transformation
         assert_eq!(result.sig.ident.to_string(), "advanced_method__wasm_export");
-        
+
         // Check that js_name attribute is forwarded
-        let wasm_bindgen_attr = result.attrs.iter()
+        let wasm_bindgen_attr = result
+            .attrs
+            .iter()
             .find(|attr| attr.path().is_ident("wasm_bindgen"))
             .expect("wasm_bindgen attribute should be present");
-        
+
         let attr_tokens = quote!(#wasm_bindgen_attr).to_string();
         assert!(attr_tokens.contains("js_name = \"advancedMethod\""));
     }

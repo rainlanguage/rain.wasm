@@ -208,7 +208,8 @@ mod tests {
                 Ok(a + b)
             }
         );
-        let top_attrs: WasmExportAttrs = syn::parse_quote!(return_description = "sum of the inputs");
+        let top_attrs: WasmExportAttrs =
+            syn::parse_quote!(return_description = "sum of the inputs");
         let result = parse(&mut func, top_attrs).unwrap();
 
         let expected: TokenStream = parse_quote!(
@@ -236,8 +237,8 @@ mod tests {
             }
         );
         let top_attrs: WasmExportAttrs = syn::parse_quote!(
-            js_name = "complexCalculation", 
-            return_description = "complex calculation result", 
+            js_name = "complexCalculation",
+            return_description = "complex calculation result",
             catch
         );
         let result = parse(&mut func, top_attrs).unwrap();
