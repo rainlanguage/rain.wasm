@@ -45,8 +45,13 @@ impl WasmExportFunctionBuilder {
         let (_, processed_params, _) = Self::process_function_parameters(&method.sig.inputs)?;
         export_method.sig.inputs = processed_params;
 
-        // forward attributes for exported method + allow none snake_case
-        export_method.attrs = vec![syn::parse_quote!(#[allow(non_snake_case)])];
+        // extract doc comments from original method
+        let doc_comments = Self::extract_doc_comments(&method.attrs);
+
+        // forward attributes for exported method + allow none snake_case + doc comments
+        export_method.attrs = Vec::new();
+        export_method.attrs.extend(doc_comments);
+        export_method.attrs.push(syn::parse_quote!(#[allow(non_snake_case)]));
         if !forward_attrs.is_empty() {
             export_method.attrs.push(syn::parse_quote!(
                 #[wasm_bindgen(#(#forward_attrs),*)]
@@ -89,8 +94,13 @@ impl WasmExportFunctionBuilder {
         let (_, processed_params, _) = Self::process_function_parameters(&func.sig.inputs)?;
         export_fn.sig.inputs = processed_params;
 
-        // forward attributes for exported function + allow none snake_case
-        export_fn.attrs = vec![syn::parse_quote!(#[allow(non_snake_case)])];
+        // extract doc comments from original function
+        let doc_comments = Self::extract_doc_comments(&func.attrs);
+
+        // forward attributes for exported function + allow none snake_case + doc comments
+        export_fn.attrs = Vec::new();
+        export_fn.attrs.extend(doc_comments);
+        export_fn.attrs.push(syn::parse_quote!(#[allow(non_snake_case)]));
         if !forward_attrs.is_empty() {
             export_fn.attrs.push(syn::parse_quote!(
                 #[wasm_bindgen(#(#forward_attrs),*)]
@@ -346,6 +356,18 @@ impl WasmExportFunctionBuilder {
                 pat_type.attrs.retain(|attr| !attr.path().is_ident("wasm_export"));
             }
         }
+    }
+
+    /// Extracts doc comments (/// ...) from function/method attributes
+    pub fn extract_doc_comments(attrs: &[syn::Attribute]) -> Vec<syn::Attribute> {
+        attrs
+            .iter()
+            .filter(|attr| {
+                // Check if attribute is a doc comment (starts with "doc")
+                attr.path().is_ident("doc")
+            })
+            .cloned()
+            .collect()
     }
 
     /// Creates the function name from the original name, it is appended by __wasm_export
@@ -924,5 +946,329 @@ mod tests {
             assert_eq!(pat_type.attrs.len(), 1);
             assert!(pat_type.attrs[0].path().is_ident("other_attr"));
         }
+    }
+
+    #[test]
+    fn test_extract_doc_comments() {
+        // Test extracting doc comments from function attributes
+        let func: ItemFn = parse_quote!(
+            /// This is a single line doc comment
+            /// This is another line
+            #[other_attr]
+            pub fn test_func() -> Result<(), Error> {
+                Ok(())
+            }
+        );
+        
+        let doc_comments = WasmExportFunctionBuilder::extract_doc_comments(&func.attrs);
+        assert_eq!(doc_comments.len(), 2);
+        
+        // Verify both are doc attributes
+        for comment in &doc_comments {
+            assert!(comment.path().is_ident("doc"));
+        }
+    }
+
+    #[test]
+    fn test_extract_doc_comments_no_docs() {
+        // Test extracting doc comments when there are none
+        let func: ItemFn = parse_quote!(
+            #[other_attr]
+            #[some_macro]
+            pub fn test_func() -> Result<(), Error> {
+                Ok(())
+            }
+        );
+        
+        let doc_comments = WasmExportFunctionBuilder::extract_doc_comments(&func.attrs);
+        assert_eq!(doc_comments.len(), 0);
+    }
+
+    #[test]
+    fn test_extract_doc_comments_mixed() {
+        // Test extracting doc comments mixed with other attributes
+        let func: ItemFn = parse_quote!(
+            #[cfg(test)]
+            /// First doc comment
+            #[derive(Debug)]
+            /// Second doc comment
+            /// Third doc comment
+            #[allow(dead_code)]
+            pub fn test_func() -> Result<(), Error> {
+                Ok(())
+            }
+        );
+        
+        let doc_comments = WasmExportFunctionBuilder::extract_doc_comments(&func.attrs);
+        assert_eq!(doc_comments.len(), 3);
+        
+        // Verify all are doc attributes
+        for comment in &doc_comments {
+            assert!(comment.path().is_ident("doc"));
+        }
+    }
+
+    #[test]
+    fn test_build_export_method_with_doc_comments() {
+        // Test that doc comments are forwarded to export method
+        let method: ImplItemFn = parse_quote!(
+            /// This method does something useful
+            /// It takes a string and returns a result
+            pub fn some_method(arg: String) -> Result<String, Error> {
+                Ok(arg)
+            }
+        );
+        let config = WasmExportFunctionBuilderConfig {
+            forward_attrs: vec![parse_quote!(js_name = "someMethod")],
+            return_type: parse_quote!(String),
+            preserve_js_class: None,
+        };
+        
+        let result = WasmExportFunctionBuilder::build_export_method(&method, config).unwrap();
+        
+        // Check that doc comments are present in export method
+        let doc_count = result.attrs.iter().filter(|attr| attr.path().is_ident("doc")).count();
+        assert_eq!(doc_count, 2);
+        
+        // Check that other attributes are also present
+        assert!(result.attrs.iter().any(|attr| attr.path().is_ident("allow")));
+        assert!(result.attrs.iter().any(|attr| attr.path().is_ident("wasm_bindgen")));
+    }
+
+    #[test]
+    fn test_build_export_method_no_doc_comments() {
+        // Test that method without doc comments works normally
+        let method: ImplItemFn = parse_quote!(
+            #[some_attr]
+            pub fn some_method(arg: String) -> Result<String, Error> {
+                Ok(arg)
+            }
+        );
+        let config = WasmExportFunctionBuilderConfig {
+            forward_attrs: vec![],
+            return_type: parse_quote!(String),
+            preserve_js_class: None,
+        };
+        
+        let result = WasmExportFunctionBuilder::build_export_method(&method, config).unwrap();
+        
+        // Check that no doc comments are present
+        let doc_count = result.attrs.iter().filter(|attr| attr.path().is_ident("doc")).count();
+        assert_eq!(doc_count, 0);
+        
+        // Check that other attributes are still present
+        assert!(result.attrs.iter().any(|attr| attr.path().is_ident("allow")));
+    }
+
+    #[test]
+    fn test_build_export_function_with_doc_comments() {
+        // Test that doc comments are forwarded to export function
+        let func: ItemFn = parse_quote!(
+            /// This function adds two numbers
+            /// # Examples
+            /// ```
+            /// let result = add(1, 2);
+            /// ```
+            pub fn add(a: u32, b: u32) -> Result<u32, Error> {
+                Ok(a + b)
+            }
+        );
+        let config = WasmExportFunctionBuilderConfig {
+            forward_attrs: vec![parse_quote!(js_name = "add")],
+            return_type: parse_quote!(u32),
+            preserve_js_class: None,
+        };
+        
+        let result = WasmExportFunctionBuilder::build_export_function(&func, config).unwrap();
+        
+        // Check that doc comments are present in export function
+        let doc_count = result.attrs.iter().filter(|attr| attr.path().is_ident("doc")).count();
+        assert_eq!(doc_count, 5); // 5 lines of doc comments (updated from incorrect 4)
+        
+        // Check that other attributes are also present
+        assert!(result.attrs.iter().any(|attr| attr.path().is_ident("allow")));
+        assert!(result.attrs.iter().any(|attr| attr.path().is_ident("wasm_bindgen")));
+    }
+
+    #[test]
+    fn test_build_export_function_no_doc_comments() {
+        // Test that function without doc comments works normally
+        let func: ItemFn = parse_quote!(
+            pub fn simple_func() -> Result<(), Error> {
+                Ok(())
+            }
+        );
+        let config = WasmExportFunctionBuilderConfig {
+            forward_attrs: vec![],
+            return_type: parse_quote!(()),
+            preserve_js_class: None,
+        };
+        
+        let result = WasmExportFunctionBuilder::build_export_function(&func, config).unwrap();
+        
+        // Check that no doc comments are present
+        let doc_count = result.attrs.iter().filter(|attr| attr.path().is_ident("doc")).count();
+        assert_eq!(doc_count, 0);
+        
+        // Check that other attributes are still present
+        assert!(result.attrs.iter().any(|attr| attr.path().is_ident("allow")));
+        assert!(result.attrs.iter().any(|attr| attr.path().is_ident("wasm_bindgen")));
+    }
+
+    #[test]
+    fn test_doc_comments_with_preserve_js_class() {
+        // Test that doc comments work with preserve_js_class attribute
+        let func: ItemFn = parse_quote!(
+            /// Returns a JS class instance
+            /// This function demonstrates preserve_js_class behavior
+            pub fn get_js_instance() -> Result<JsClass, Error> {
+                Ok(JsClass::new())
+            }
+        );
+        let config = WasmExportFunctionBuilderConfig {
+            forward_attrs: vec![],
+            return_type: parse_quote!(JsClass),
+            preserve_js_class: Some(Span::call_site()),
+        };
+        
+        let result = WasmExportFunctionBuilder::build_export_function(&func, config).unwrap();
+        
+        // Check that doc comments are present
+        let doc_count = result.attrs.iter().filter(|attr| attr.path().is_ident("doc")).count();
+        assert_eq!(doc_count, 2);
+        
+        // Check that return type is JsValue for preserve_js_class
+        match &result.sig.output {
+            syn::ReturnType::Type(_, ty) => {
+                assert_eq!(quote!(#ty).to_string(), "JsValue");
+            }
+            _ => panic!("Expected return type"),
+        }
+    }
+
+    #[test]
+    fn test_doc_comments_with_mixed_attributes() {
+        // Test doc comments combined with other wasm_export attributes
+        let func: ItemFn = parse_quote!(
+            /// Complex function with multiple attributes
+            /// Demonstrates mixed usage of doc comments and wasm_export attributes  
+            pub fn complex_func(input: String) -> Result<u32, Error> {
+                Ok(42)
+            }
+        );
+        let config = WasmExportFunctionBuilderConfig {
+            forward_attrs: vec![
+                parse_quote!(js_name = "complexFunction"),
+                parse_quote!(catch),
+                parse_quote!(return_description = "a magic number")
+            ],
+            return_type: parse_quote!(u32),
+            preserve_js_class: None,
+        };
+        
+        let result = WasmExportFunctionBuilder::build_export_function(&func, config).unwrap();
+        
+        // Check that doc comments are present
+        let doc_count = result.attrs.iter().filter(|attr| attr.path().is_ident("doc")).count();
+        assert_eq!(doc_count, 2);
+        
+        // Check that wasm_bindgen attributes are present
+        let wasm_bindgen_attrs: Vec<_> = result.attrs.iter()
+            .filter(|attr| attr.path().is_ident("wasm_bindgen"))
+            .collect();
+        assert_eq!(wasm_bindgen_attrs.len(), 1);
+        
+        // Check that the wasm_bindgen attribute contains all expected attributes
+        let attr_tokens = quote!(#(#wasm_bindgen_attrs)*).to_string();
+        assert!(attr_tokens.contains("js_name = \"complexFunction\""));
+        assert!(attr_tokens.contains("catch"));
+        assert!(attr_tokens.contains("return_description = \"a magic number\""));
+    }
+
+    #[test]
+    fn test_doc_comments_special_characters() {
+        // Test doc comments with special characters and formatting
+        let func: ItemFn = parse_quote!(
+            /// Function with `code`, **bold**, and *italic* markdown
+            /// 
+            /// # Examples
+            /// ```rust
+            /// let result = special_func("test");
+            /// assert_eq!(result.unwrap(), "processed");
+            /// ```
+            /// 
+            /// ## Notes
+            /// - Supports Unicode: 🦀 Rust
+            /// - Handles quotes: "double" and 'single'
+            /// - Special chars: @#$%^&*()
+            pub fn special_func(input: &str) -> Result<String, Error> {
+                Ok(format!("processed: {}", input))
+            }
+        );
+        let config = WasmExportFunctionBuilderConfig {
+            forward_attrs: vec![],
+            return_type: parse_quote!(String),
+            preserve_js_class: None,
+        };
+        
+        let result = WasmExportFunctionBuilder::build_export_function(&func, config).unwrap();
+        
+        // Check that all doc comment lines are preserved
+        let doc_count = result.attrs.iter().filter(|attr| attr.path().is_ident("doc")).count();
+        assert_eq!(doc_count, 12); // Should match the number of doc comment lines (updated count)
+        
+        // Verify that special characters are preserved in doc comments
+        let doc_attrs: Vec<_> = result.attrs.iter()
+            .filter(|attr| attr.path().is_ident("doc"))
+            .collect();
+        
+        // Check that some special content is preserved
+        let all_docs = quote!(#(#doc_attrs)*).to_string();
+        assert!(all_docs.contains("🦀 Rust"));
+        assert!(all_docs.contains("```rust"));
+        assert!(all_docs.contains("@#$%^&*()"));
+    }
+
+    #[test] 
+    fn test_build_export_method_doc_comments_comprehensive() {
+        // Test comprehensive doc comment scenarios for methods
+        let method: ImplItemFn = parse_quote!(
+            /// This method performs advanced calculations
+            /// 
+            /// It takes multiple parameters and returns a complex result.
+            /// The implementation uses sophisticated algorithms.
+            /// 
+            /// # Parameters
+            /// - `self`: The instance reference
+            /// - `input`: The input value to process
+            /// 
+            /// # Returns
+            /// A Result containing the processed value or an error
+            pub fn advanced_method(&self, input: u64) -> Result<ProcessedValue, Error> {
+                Ok(ProcessedValue::new(input))
+            }
+        );
+        let config = WasmExportFunctionBuilderConfig {
+            forward_attrs: vec![parse_quote!(js_name = "advancedMethod")],
+            return_type: parse_quote!(ProcessedValue),
+            preserve_js_class: None,
+        };
+        
+        let result = WasmExportFunctionBuilder::build_export_method(&method, config).unwrap();
+        
+        // Check that all doc comments are preserved
+        let doc_count = result.attrs.iter().filter(|attr| attr.path().is_ident("doc")).count();
+        assert_eq!(doc_count, 11); // Count the doc comment lines
+        
+        // Check method name transformation
+        assert_eq!(result.sig.ident.to_string(), "advanced_method__wasm_export");
+        
+        // Check that js_name attribute is forwarded
+        let wasm_bindgen_attr = result.attrs.iter()
+            .find(|attr| attr.path().is_ident("wasm_bindgen"))
+            .expect("wasm_bindgen attribute should be present");
+        
+        let attr_tokens = quote!(#wasm_bindgen_attr).to_string();
+        assert!(attr_tokens.contains("js_name = \"advancedMethod\""));
     }
 }
