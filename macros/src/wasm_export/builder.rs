@@ -13,8 +13,11 @@ pub enum SelfReceiver {
 }
 
 /// Type alias for the complex return type of process_function_parameters
-type ProcessFunctionParametersResult =
-    syn::Result<(SelfReceiver, Punctuated<FnArg, Comma>, Punctuated<FnArg, Comma>)>;
+type ProcessFunctionParametersResult = syn::Result<(
+    SelfReceiver,
+    Punctuated<FnArg, Comma>,
+    Punctuated<FnArg, Comma>,
+)>;
 
 /// Enum to specify the type of the function
 pub enum FunctionType<'a> {
@@ -153,8 +156,7 @@ impl WasmExportFunctionBuilder {
         let (call_expr, is_async) = match function_type {
             FunctionType::Method(method) => {
                 let fn_name = &method.sig.ident;
-                let (self_receiver, args) =
-                    Self::collect_function_arguments(&method.sig.inputs);
+                let (self_receiver, args) = Self::collect_function_arguments(&method.sig.inputs);
 
                 let call_expr = match self_receiver {
                     SelfReceiver::Instance => {
@@ -811,7 +813,10 @@ mod tests {
             .parse2(stream)
             .unwrap();
         let result = WasmExportFunctionBuilder::collect_function_arguments(&inputs);
-        let expected = (SelfReceiver::Instance, vec![TokenStream::from_str(r#"arg1"#).unwrap()]);
+        let expected = (
+            SelfReceiver::Instance,
+            vec![TokenStream::from_str(r#"arg1"#).unwrap()],
+        );
         assert_eq!(result.0, expected.0);
         assert_eq!(result.1.len(), expected.1.len());
         assert!(result
