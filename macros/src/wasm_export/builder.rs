@@ -3,9 +3,18 @@ use std::ops::Deref;
 use proc_macro2::{Span, TokenStream};
 use syn::{punctuated::Punctuated, token::Comma, Block, FnArg, Ident, ImplItemFn, ItemFn, Meta, Type};
 
+/// Enum to specify whether a function has a self receiver parameter
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SelfReceiver {
+    /// Function has a self receiver (&self, &mut self, self)
+    Instance,
+    /// Function has no self receiver (static method or standalone function)
+    Static,
+}
+
 /// Type alias for the complex return type of process_function_parameters
 type ProcessFunctionParametersResult =
-    syn::Result<(bool, Punctuated<FnArg, Comma>, Punctuated<FnArg, Comma>)>;
+    syn::Result<(SelfReceiver, Punctuated<FnArg, Comma>, Punctuated<FnArg, Comma>)>;
 
 /// Enum to specify the type of the function
 pub enum FunctionType<'a> {
@@ -144,15 +153,18 @@ impl WasmExportFunctionBuilder {
         let (call_expr, is_async) = match function_type {
             FunctionType::Method(method) => {
                 let fn_name = &method.sig.ident;
-                let (has_self_receiver, args) =
+                let (self_receiver, args) =
                     Self::collect_function_arguments(&method.sig.inputs);
 
-                let call_expr = if has_self_receiver {
-                    // instance method call: self.method_name(...)
-                    quote! { self.#fn_name(#(#args),*) }
-                } else {
-                    // static method call: Self::method_name(...)
-                    quote! { Self::#fn_name(#(#args),*) }
+                let call_expr = match self_receiver {
+                    SelfReceiver::Instance => {
+                        // instance method call: self.method_name(...)
+                        quote! { self.#fn_name(#(#args),*) }
+                    }
+                    SelfReceiver::Static => {
+                        // static method call: Self::method_name(...)
+                        quote! { Self::#fn_name(#(#args),*) }
+                    }
                 };
 
                 // return base call expression and asyncness
@@ -227,13 +239,13 @@ impl WasmExportFunctionBuilder {
     /// Collects function arguments and determines if the function has a self receiver
     pub fn collect_function_arguments(
         inputs: &Punctuated<FnArg, Comma>,
-    ) -> (bool, Vec<TokenStream>) {
-        let mut has_self_receiver = false;
+    ) -> (SelfReceiver, Vec<TokenStream>) {
+        let mut self_receiver = SelfReceiver::Static;
         let args = inputs
             .iter()
             .filter_map(|arg| match arg {
                 FnArg::Receiver(_) => {
-                    has_self_receiver = true;
+                    self_receiver = SelfReceiver::Instance;
                     None
                 }
                 FnArg::Typed(pat_type) => {
@@ -243,22 +255,22 @@ impl WasmExportFunctionBuilder {
             })
             .collect();
 
-        (has_self_receiver, args)
+        (self_receiver, args)
     }
 
     /// Processes function parameters by extracting wasm_export attributes and converting them to wasm_bindgen
-    /// Returns: (has_self_receiver, processed_inputs_for_wrapper, cleaned_inputs_for_original)
+    /// Returns: (self_receiver, processed_inputs_for_wrapper, cleaned_inputs_for_original)
     pub fn process_function_parameters(
         inputs: &Punctuated<FnArg, Comma>,
     ) -> ProcessFunctionParametersResult {
-        let mut has_self_receiver = false;
+        let mut self_receiver = SelfReceiver::Static;
         let mut processed_inputs = Punctuated::new();
         let mut cleaned_inputs = Punctuated::new();
 
         for input in inputs {
             match input {
                 FnArg::Receiver(receiver) => {
-                    has_self_receiver = true;
+                    self_receiver = SelfReceiver::Instance;
 
                     // Check if receiver has any wasm_export attributes - this should be an error
                     for attr in &receiver.attrs {
@@ -309,7 +321,7 @@ impl WasmExportFunctionBuilder {
             }
         }
 
-        Ok((has_self_receiver, processed_inputs, cleaned_inputs))
+        Ok((self_receiver, processed_inputs, cleaned_inputs))
     }
 
     /// Processes a single wasm_export attribute on a parameter and converts it to wasm_bindgen format
@@ -779,7 +791,7 @@ mod tests {
             .unwrap();
         let result = WasmExportFunctionBuilder::collect_function_arguments(&inputs);
         let expected = (
-            false,
+            SelfReceiver::Static,
             vec![
                 TokenStream::from_str(r#"arg1"#).unwrap(),
                 TokenStream::from_str(r#"arg2"#).unwrap(),
@@ -799,7 +811,7 @@ mod tests {
             .parse2(stream)
             .unwrap();
         let result = WasmExportFunctionBuilder::collect_function_arguments(&inputs);
-        let expected = (true, vec![TokenStream::from_str(r#"arg1"#).unwrap()]);
+        let expected = (SelfReceiver::Instance, vec![TokenStream::from_str(r#"arg1"#).unwrap()]);
         assert_eq!(result.0, expected.0);
         assert_eq!(result.1.len(), expected.1.len());
         assert!(result
@@ -825,7 +837,7 @@ mod tests {
             .unwrap();
         let result = WasmExportFunctionBuilder::process_function_parameters(&inputs).unwrap();
 
-        assert_eq!(result.0, false); // no self receiver
+        assert_eq!(result.0, SelfReceiver::Static); // no self receiver
         assert_eq!(result.1.len(), 2); // processed inputs
         assert_eq!(result.2.len(), 2); // cleaned inputs
 
@@ -853,7 +865,7 @@ mod tests {
             .unwrap();
         let result = WasmExportFunctionBuilder::process_function_parameters(&inputs).unwrap();
 
-        assert_eq!(result.0, false); // no self receiver
+        assert_eq!(result.0, SelfReceiver::Static); // no self receiver
         assert_eq!(result.1.len(), 2); // processed inputs
         assert_eq!(result.2.len(), 2); // cleaned inputs
 
@@ -885,7 +897,7 @@ mod tests {
             .unwrap();
         let result = WasmExportFunctionBuilder::process_function_parameters(&inputs).unwrap();
 
-        assert_eq!(result.0, true); // has self receiver
+        assert_eq!(result.0, SelfReceiver::Instance); // has self receiver
         assert_eq!(result.1.len(), 2); // processed inputs (self + arg1)
         assert_eq!(result.2.len(), 2); // cleaned inputs (self + arg1)
     }
