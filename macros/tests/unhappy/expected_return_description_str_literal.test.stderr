@@ -1,0 +1,5 @@
+error: expected string literal
+ --> tests/unhappy/expected_return_description_str_literal.test.rs:8:19
+  |
+8 |     #[wasm_export(return_description = something)]
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

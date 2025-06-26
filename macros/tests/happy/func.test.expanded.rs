@@ -77,3 +77,57 @@ pub fn some_fn_preserve_class_sync__wasm_export(arg: String) -> JsValue {
     };
     obj.into()
 }
+pub fn add_with_description(a: u32, b: u32) -> Result<u32, Error> {
+    Ok(a + b)
+}
+#[allow(non_snake_case)]
+#[wasm_bindgen(
+    unchecked_return_type = "WasmEncodedResult<u32>",
+    return_description = "returns the sum of two numbers"
+)]
+pub fn add_with_description__wasm_export(a: u32, b: u32) -> WasmEncodedResult<u32> {
+    add_with_description(a, b).into()
+}
+pub async fn complex_calculation_with_desc(input: String) -> Result<i64, Error> {
+    Ok(42)
+}
+#[allow(non_snake_case)]
+#[wasm_bindgen(
+    js_name = "complexCalc",
+    catch,
+    unchecked_return_type = "WasmEncodedResult<i64>",
+    return_description = "performs complex calculation"
+)]
+pub async fn complex_calculation_with_desc__wasm_export(
+    input: String,
+) -> WasmEncodedResult<i64> {
+    complex_calculation_with_desc(input).await.into()
+}
+pub fn add(arg1: u32, arg2: u32) -> Result<u32, Error> {
+    Ok(arg1 + arg2)
+}
+#[allow(non_snake_case)]
+#[wasm_bindgen(
+    unchecked_return_type = "WasmEncodedResult<u32>",
+    return_description = "the result of the addition of `arg1` and `arg2`"
+)]
+pub fn add__wasm_export(
+    #[wasm_bindgen(param_description = "the first number")]
+    arg1: u32,
+    #[wasm_bindgen(param_description = "the second number")]
+    arg2: u32,
+) -> WasmEncodedResult<u32> {
+    add(arg1, arg2).into()
+}
+pub fn mixed_params(input: String, count: u32) -> Result<String, Error> {
+    Ok(input.repeat(count as usize))
+}
+#[allow(non_snake_case)]
+#[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<String>")]
+pub fn mixed_params__wasm_export(
+    #[wasm_bindgen(param_description = "the input string")]
+    input: String,
+    count: u32,
+) -> WasmEncodedResult<String> {
+    mixed_params(input, count).into()
+}
