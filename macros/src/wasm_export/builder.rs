@@ -329,10 +329,11 @@ impl WasmExportFunctionBuilder {
     /// Processes a single wasm_export attribute on a parameter and converts it to wasm_bindgen format
     fn process_parameter_wasm_export_attr(attr: &syn::Attribute) -> syn::Result<Vec<syn::Meta>> {
         use syn::{punctuated::Punctuated, token::Comma, Meta};
-        use super::error::extend_err_msg;
+        use super::{error::extend_err_msg, attrs::AttrKeys};
 
         let mut wasm_bindgen_metas = Vec::new();
         let mut seen_param_description = false;
+        let mut seen_unchecked_param_type = false;
 
         // Handle empty wasm_export attribute
         if matches!(attr.meta, Meta::Path(_)) {
@@ -364,6 +365,30 @@ impl WasmExportFunctionBuilder {
                         .value
                     {
                         // Convert param_description from wasm_export to wasm_bindgen format
+                        wasm_bindgen_metas.push(meta);
+                    } else {
+                        return Err(syn::Error::new_spanned(meta, "expected string literal"));
+                    }
+                } else if ident == AttrKeys::UNCHECKED_PARAM_TYPE {
+                    // Check for duplicate unchecked_param_type
+                    if seen_unchecked_param_type {
+                        return Err(syn::Error::new_spanned(
+                            meta,
+                            "duplicate `unchecked_param_type` attribute",
+                        ));
+                    }
+                    seen_unchecked_param_type = true;
+
+                    // Validate that it has a string literal value
+                    if let syn::Expr::Lit(syn::ExprLit {
+                        lit: syn::Lit::Str(_),
+                        ..
+                    }) = &meta
+                        .require_name_value()
+                        .map_err(extend_err_msg(" and it must be a string literal"))?
+                        .value
+                    {
+                        // Convert unchecked_param_type from wasm_export to wasm_bindgen format
                         wasm_bindgen_metas.push(meta);
                     } else {
                         return Err(syn::Error::new_spanned(meta, "expected string literal"));

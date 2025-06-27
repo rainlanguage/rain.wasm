@@ -1,0 +1,5 @@
+error: `param_description` cannot be used on receiver parameters (self, &self, &mut self)
+  --> tests/unhappy/unchecked_param_type_on_self.test.rs:10:9
+   |
+10 |         #[wasm_export(unchecked_param_type = "CustomType")]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

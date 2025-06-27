@@ -131,3 +131,51 @@ pub fn mixed_params__wasm_export(
 ) -> WasmEncodedResult<String> {
     mixed_params(input, count).into()
 }
+pub fn with_unchecked_param_type(
+    custom_param: wasm_bindgen::JsValue,
+    normal_param: String,
+) -> Result<String, Error> {
+    Ok(normal_param)
+}
+#[allow(non_snake_case)]
+#[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<String>")]
+pub fn with_unchecked_param_type__wasm_export(
+    #[wasm_bindgen(unchecked_param_type = "CustomJSType")]
+    custom_param: wasm_bindgen::JsValue,
+    normal_param: String,
+) -> WasmEncodedResult<String> {
+    with_unchecked_param_type(custom_param, normal_param).into()
+}
+pub fn with_mixed_param_attrs(
+    mixed_param: wasm_bindgen::JsValue,
+    regular_param: String,
+) -> Result<String, Error> {
+    Ok(regular_param)
+}
+#[allow(non_snake_case)]
+#[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<String>")]
+pub fn with_mixed_param_attrs__wasm_export(
+    #[wasm_bindgen(
+        param_description = "a custom JS object",
+        unchecked_param_type = "MyCustomType"
+    )]
+    mixed_param: wasm_bindgen::JsValue,
+    #[wasm_bindgen(param_description = "a regular string")]
+    regular_param: String,
+) -> WasmEncodedResult<String> {
+    with_mixed_param_attrs(mixed_param, regular_param).into()
+}
+pub fn with_unchecked_and_js_name(element: wasm_bindgen::JsValue) -> Result<u32, Error> {
+    Ok(42)
+}
+#[allow(non_snake_case)]
+#[wasm_bindgen(
+    js_name = "customFunction",
+    unchecked_return_type = "WasmEncodedResult<u32>"
+)]
+pub fn with_unchecked_and_js_name__wasm_export(
+    #[wasm_bindgen(unchecked_param_type = "HTMLElement")]
+    element: wasm_bindgen::JsValue,
+) -> WasmEncodedResult<u32> {
+    with_unchecked_and_js_name(element).into()
+}

@@ -52,3 +52,30 @@ pub fn mixed_params(
 ) -> Result<String, Error> {
     Ok(input.repeat(count as usize))
 }
+
+#[wasm_export]
+pub fn with_unchecked_param_type(
+    #[wasm_export(unchecked_param_type = "CustomJSType")]
+    custom_param: wasm_bindgen::JsValue,
+    normal_param: String,
+) -> Result<String, Error> {
+    Ok(normal_param)
+}
+
+#[wasm_export]
+pub fn with_mixed_param_attrs(
+    #[wasm_export(param_description = "a custom JS object", unchecked_param_type = "MyCustomType")]
+    mixed_param: wasm_bindgen::JsValue,
+    #[wasm_export(param_description = "a regular string")]
+    regular_param: String,
+) -> Result<String, Error> {
+    Ok(regular_param)
+}
+
+#[wasm_export(js_name = "customFunction")]
+pub fn with_unchecked_and_js_name(
+    #[wasm_export(unchecked_param_type = "HTMLElement")]
+    element: wasm_bindgen::JsValue,
+) -> Result<u32, Error> {
+    Ok(42)
+}

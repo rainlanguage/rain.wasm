@@ -58,4 +58,24 @@ impl TestStruct {
     ) -> Result<u32, Error> {
         Ok(index * 2)
     }
+
+    #[wasm_export]
+    pub fn with_unchecked_param(
+        &self,
+        #[wasm_export(unchecked_param_type = "CustomJSType")]
+        custom_param: wasm_bindgen::JsValue,
+    ) -> Result<String, Error> {
+        Ok("success".to_string())
+    }
+
+    #[wasm_export(js_name = "processElement")]
+    pub fn process_element(
+        &mut self,
+        #[wasm_export(unchecked_param_type = "HTMLElement", param_description = "the DOM element to process")]
+        element: wasm_bindgen::JsValue,
+        #[wasm_export(param_description = "processing options")]
+        options: String,
+    ) -> Result<bool, Error> {
+        Ok(true)
+    }
 }

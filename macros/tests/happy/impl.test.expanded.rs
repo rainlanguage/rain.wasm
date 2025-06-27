@@ -115,6 +115,19 @@ impl TestStruct {
     pub fn number(&self, index: u32) -> Result<u32, Error> {
         Ok(index * 2)
     }
+    pub fn with_unchecked_param(
+        &self,
+        custom_param: wasm_bindgen::JsValue,
+    ) -> Result<String, Error> {
+        Ok("success".to_string())
+    }
+    pub fn process_element(
+        &mut self,
+        element: wasm_bindgen::JsValue,
+        options: String,
+    ) -> Result<bool, Error> {
+        Ok(true)
+    }
 }
 #[wasm_bindgen(some_top_wbg_attr = "something", some_other_wbg_attr)]
 impl TestStruct {
@@ -152,5 +165,31 @@ impl TestStruct {
         index: u32,
     ) -> WasmEncodedResult<u32> {
         self.number(index).into()
+    }
+    #[allow(non_snake_case)]
+    #[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<String>")]
+    pub fn with_unchecked_param__wasm_export(
+        &self,
+        #[wasm_bindgen(unchecked_param_type = "CustomJSType")]
+        custom_param: wasm_bindgen::JsValue,
+    ) -> WasmEncodedResult<String> {
+        self.with_unchecked_param(custom_param).into()
+    }
+    #[allow(non_snake_case)]
+    #[wasm_bindgen(
+        js_name = "processElement",
+        unchecked_return_type = "WasmEncodedResult<bool>"
+    )]
+    pub fn process_element__wasm_export(
+        &mut self,
+        #[wasm_bindgen(
+            unchecked_param_type = "HTMLElement",
+            param_description = "the DOM element to process"
+        )]
+        element: wasm_bindgen::JsValue,
+        #[wasm_bindgen(param_description = "processing options")]
+        options: String,
+    ) -> WasmEncodedResult<bool> {
+        self.process_element(element, options).into()
     }
 }
