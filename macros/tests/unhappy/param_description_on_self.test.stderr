@@ -1,4 +1,4 @@
-error: `param_description` cannot be used on receiver parameters (self, &self, &mut self)
+error: wasm_export parameter attributes cannot be used on receiver parameters (self, &self, &mut self)
   --> tests/unhappy/param_description_on_self.test.rs:10:9
    |
 10 |         #[wasm_export(param_description = "the instance")]

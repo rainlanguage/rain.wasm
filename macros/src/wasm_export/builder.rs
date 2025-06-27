@@ -279,7 +279,7 @@ impl WasmExportFunctionBuilder {
                         if attr.path().is_ident("wasm_export") {
                             return Err(syn::Error::new_spanned(
                                 attr,
-                                "`param_description` cannot be used on receiver parameters (self, &self, &mut self)"
+                                "wasm_export parameter attributes cannot be used on receiver parameters (self, &self, &mut self)"
                             ));
                         }
                     }
@@ -979,7 +979,7 @@ mod tests {
         let error = result.unwrap_err();
         assert!(error
             .to_string()
-            .contains("param_description` cannot be used on receiver parameters"));
+            .contains("wasm_export parameter attributes cannot be used on receiver parameters"));
     }
 
     #[test]
