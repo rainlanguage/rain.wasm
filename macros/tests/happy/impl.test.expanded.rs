@@ -128,6 +128,26 @@ impl TestStruct {
     ) -> Result<bool, Error> {
         Ok(true)
     }
+    pub fn with_js_name_params(
+        &self,
+        primary_key: u32,
+        display_name: String,
+    ) -> Result<String, Error> {
+        Ok({
+            let res = ::alloc::fmt::format(
+                format_args!("Item {0}: {1}", primary_key, display_name),
+            );
+            res
+        })
+    }
+    pub fn update_record(
+        &mut self,
+        record_id: u32,
+        new_data: wasm_bindgen::JsValue,
+        save_options: String,
+    ) -> Result<bool, Error> {
+        Ok(true)
+    }
 }
 #[wasm_bindgen(some_top_wbg_attr = "something", some_other_wbg_attr)]
 impl TestStruct {
@@ -191,5 +211,38 @@ impl TestStruct {
         options: String,
     ) -> WasmEncodedResult<bool> {
         self.process_element(element, options).into()
+    }
+    #[allow(non_snake_case)]
+    #[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<String>")]
+    pub fn with_js_name_params__wasm_export(
+        &self,
+        #[wasm_bindgen(js_name = "primaryKey")]
+        primary_key: u32,
+        #[wasm_bindgen(js_name = "displayName")]
+        display_name: String,
+    ) -> WasmEncodedResult<String> {
+        self.with_js_name_params(primary_key, display_name).into()
+    }
+    #[allow(non_snake_case)]
+    #[wasm_bindgen(
+        js_name = "updateRecord",
+        unchecked_return_type = "WasmEncodedResult<bool>"
+    )]
+    pub fn update_record__wasm_export(
+        &mut self,
+        #[wasm_bindgen(
+            js_name = "recordId",
+            param_description = "unique identifier for the record"
+        )]
+        record_id: u32,
+        #[wasm_bindgen(js_name = "newData", unchecked_param_type = "RecordData")]
+        new_data: wasm_bindgen::JsValue,
+        #[wasm_bindgen(
+            js_name = "saveOptions",
+            param_description = "options for saving"
+        )]
+        save_options: String,
+    ) -> WasmEncodedResult<bool> {
+        self.update_record(record_id, new_data, save_options).into()
     }
 }

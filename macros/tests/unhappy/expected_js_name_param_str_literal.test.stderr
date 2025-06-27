@@ -1,0 +1,5 @@
+error: expected string literal
+  --> tests/unhappy/expected_js_name_param_str_literal.test.rs:10:23
+   |
+10 |         #[wasm_export(js_name = notStringLiteral)]
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^

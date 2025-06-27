@@ -1,0 +1,5 @@
+error: duplicate `js_name` attribute
+  --> tests/unhappy/dup_js_name_param_attr.test.rs:10:46
+   |
+10 |         #[wasm_export(js_name = "firstName", js_name = "secondName")]
+   |                                              ^^^^^^^^^^^^^^^^^^^^^^

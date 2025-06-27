@@ -78,4 +78,28 @@ impl TestStruct {
     ) -> Result<bool, Error> {
         Ok(true)
     }
+
+    #[wasm_export]
+    pub fn with_js_name_params(
+        &self,
+        #[wasm_export(js_name = "primaryKey")]
+        primary_key: u32,
+        #[wasm_export(js_name = "displayName")]
+        display_name: String,
+    ) -> Result<String, Error> {
+        Ok(format!("Item {}: {}", primary_key, display_name))
+    }
+
+    #[wasm_export(js_name = "updateRecord")]
+    pub fn update_record(
+        &mut self,
+        #[wasm_export(js_name = "recordId", param_description = "unique identifier for the record")]
+        record_id: u32,
+        #[wasm_export(js_name = "newData", unchecked_param_type = "RecordData")]
+        new_data: wasm_bindgen::JsValue,
+        #[wasm_export(js_name = "saveOptions", param_description = "options for saving")]
+        save_options: String,
+    ) -> Result<bool, Error> {
+        Ok(true)
+    }
 }

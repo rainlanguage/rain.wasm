@@ -179,3 +179,69 @@ pub fn with_unchecked_and_js_name__wasm_export(
 ) -> WasmEncodedResult<u32> {
     with_unchecked_and_js_name(element).into()
 }
+pub fn with_js_name_params(
+    first_name: String,
+    last_name: String,
+) -> Result<String, Error> {
+    Ok({
+        let res = ::alloc::fmt::format(format_args!("{0} {1}", first_name, last_name));
+        res
+    })
+}
+#[allow(non_snake_case)]
+#[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<String>")]
+pub fn with_js_name_params__wasm_export(
+    #[wasm_bindgen(js_name = "firstName")]
+    first_name: String,
+    #[wasm_bindgen(js_name = "lastName")]
+    last_name: String,
+) -> WasmEncodedResult<String> {
+    with_js_name_params(first_name, last_name).into()
+}
+pub fn with_mixed_js_attributes(
+    user_data: wasm_bindgen::JsValue,
+    process_mode: String,
+) -> Result<bool, Error> {
+    Ok(true)
+}
+#[allow(non_snake_case)]
+#[wasm_bindgen(
+    js_name = "processUserData",
+    unchecked_return_type = "WasmEncodedResult<bool>"
+)]
+pub fn with_mixed_js_attributes__wasm_export(
+    #[wasm_bindgen(
+        js_name = "userData",
+        param_description = "the user's data object",
+        unchecked_param_type = "UserData"
+    )]
+    user_data: wasm_bindgen::JsValue,
+    #[wasm_bindgen(js_name = "processMode")]
+    process_mode: String,
+) -> WasmEncodedResult<bool> {
+    with_mixed_js_attributes(user_data, process_mode).into()
+}
+pub fn snake_to_camel_conversion(
+    user_id: u32,
+    is_active: bool,
+    created_at: String,
+) -> Result<String, Error> {
+    Ok({
+        let res = ::alloc::fmt::format(
+            format_args!("User {0} active: {1} at {2}", user_id, is_active, created_at),
+        );
+        res
+    })
+}
+#[allow(non_snake_case)]
+#[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<String>")]
+pub fn snake_to_camel_conversion__wasm_export(
+    #[wasm_bindgen(js_name = "userId")]
+    user_id: u32,
+    #[wasm_bindgen(js_name = "isActive")]
+    is_active: bool,
+    #[wasm_bindgen(js_name = "createdAt")]
+    created_at: String,
+) -> WasmEncodedResult<String> {
+    snake_to_camel_conversion(user_id, is_active, created_at).into()
+}

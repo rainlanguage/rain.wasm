@@ -334,6 +334,7 @@ impl WasmExportFunctionBuilder {
         let mut wasm_bindgen_metas = Vec::new();
         let mut seen_param_description = false;
         let mut seen_unchecked_param_type = false;
+        let mut seen_js_name = false;
 
         // Handle empty wasm_export attribute
         if matches!(attr.meta, Meta::Path(_)) {
@@ -345,56 +346,86 @@ impl WasmExportFunctionBuilder {
 
         for meta in nested_metas {
             if let Some(ident) = meta.path().get_ident() {
-                if ident == "param_description" {
-                    // Check for duplicate param_description
-                    if seen_param_description {
-                        return Err(syn::Error::new_spanned(
-                            meta,
-                            "duplicate `param_description` attribute",
-                        ));
-                    }
-                    seen_param_description = true;
+                match ident.to_string().as_str() {
+                    "param_description" => {
+                        // Check for duplicate param_description
+                        if seen_param_description {
+                            return Err(syn::Error::new_spanned(
+                                meta,
+                                "duplicate `param_description` attribute",
+                            ));
+                        }
+                        seen_param_description = true;
 
-                    // Validate that it has a string literal value
-                    if let syn::Expr::Lit(syn::ExprLit {
-                        lit: syn::Lit::Str(_),
-                        ..
-                    }) = &meta
-                        .require_name_value()
-                        .map_err(extend_err_msg(" and it must be a string literal"))?
-                        .value
-                    {
-                        // Convert param_description from wasm_export to wasm_bindgen format
-                        wasm_bindgen_metas.push(meta);
-                    } else {
-                        return Err(syn::Error::new_spanned(meta, "expected string literal"));
+                        // Validate that it has a string literal value
+                        if let syn::Expr::Lit(syn::ExprLit {
+                            lit: syn::Lit::Str(_),
+                            ..
+                        }) = &meta
+                            .require_name_value()
+                            .map_err(extend_err_msg(" and it must be a string literal"))?
+                            .value
+                        {
+                            // Convert param_description from wasm_export to wasm_bindgen format
+                            wasm_bindgen_metas.push(meta);
+                        } else {
+                            return Err(syn::Error::new_spanned(meta, "expected string literal"));
+                        }
                     }
-                } else if ident == AttrKeys::UNCHECKED_PARAM_TYPE {
-                    // Check for duplicate unchecked_param_type
-                    if seen_unchecked_param_type {
-                        return Err(syn::Error::new_spanned(
-                            meta,
-                            "duplicate `unchecked_param_type` attribute",
-                        ));
-                    }
-                    seen_unchecked_param_type = true;
+                    AttrKeys::UNCHECKED_PARAM_TYPE => {
+                        // Check for duplicate unchecked_param_type
+                        if seen_unchecked_param_type {
+                            return Err(syn::Error::new_spanned(
+                                meta,
+                                "duplicate `unchecked_param_type` attribute",
+                            ));
+                        }
+                        seen_unchecked_param_type = true;
 
-                    // Validate that it has a string literal value
-                    if let syn::Expr::Lit(syn::ExprLit {
-                        lit: syn::Lit::Str(_),
-                        ..
-                    }) = &meta
-                        .require_name_value()
-                        .map_err(extend_err_msg(" and it must be a string literal"))?
-                        .value
-                    {
-                        // Convert unchecked_param_type from wasm_export to wasm_bindgen format
-                        wasm_bindgen_metas.push(meta);
-                    } else {
-                        return Err(syn::Error::new_spanned(meta, "expected string literal"));
+                        // Validate that it has a string literal value
+                        if let syn::Expr::Lit(syn::ExprLit {
+                            lit: syn::Lit::Str(_),
+                            ..
+                        }) = &meta
+                            .require_name_value()
+                            .map_err(extend_err_msg(" and it must be a string literal"))?
+                            .value
+                        {
+                            // Convert unchecked_param_type from wasm_export to wasm_bindgen format
+                            wasm_bindgen_metas.push(meta);
+                        } else {
+                            return Err(syn::Error::new_spanned(meta, "expected string literal"));
+                        }
+                    }
+                    AttrKeys::JS_NAME => {
+                        // Check for duplicate js_name
+                        if seen_js_name {
+                            return Err(syn::Error::new_spanned(
+                                meta,
+                                "duplicate `js_name` attribute",
+                            ));
+                        }
+                        seen_js_name = true;
+
+                        // Validate that it has a string literal value
+                        if let syn::Expr::Lit(syn::ExprLit {
+                            lit: syn::Lit::Str(_),
+                            ..
+                        }) = &meta
+                            .require_name_value()
+                            .map_err(extend_err_msg(" and it must be a string literal"))?
+                            .value
+                        {
+                            // Convert js_name from wasm_export to wasm_bindgen format
+                            wasm_bindgen_metas.push(meta);
+                        } else {
+                            return Err(syn::Error::new_spanned(meta, "expected string literal"));
+                        }
+                    }
+                    _ => {
+                        // Unknown attributes are ignored (could be forwarded in the future)
                     }
                 }
-                // Add support for other parameter-level attributes here if needed
             }
         }
 
