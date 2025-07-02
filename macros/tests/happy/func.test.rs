@@ -52,3 +52,62 @@ pub fn mixed_params(
 ) -> Result<String, Error> {
     Ok(input.repeat(count as usize))
 }
+
+#[wasm_export]
+pub fn with_unchecked_param_type(
+    #[wasm_export(unchecked_param_type = "CustomJSType")]
+    custom_param: wasm_bindgen::JsValue,
+    normal_param: String,
+) -> Result<String, Error> {
+    Ok(normal_param)
+}
+
+#[wasm_export]
+pub fn with_mixed_param_attrs(
+    #[wasm_export(param_description = "a custom JS object", unchecked_param_type = "MyCustomType")]
+    mixed_param: wasm_bindgen::JsValue,
+    #[wasm_export(param_description = "a regular string")]
+    regular_param: String,
+) -> Result<String, Error> {
+    Ok(regular_param)
+}
+
+#[wasm_export(js_name = "customFunction")]
+pub fn with_unchecked_and_js_name(
+    #[wasm_export(unchecked_param_type = "HTMLElement")]
+    element: wasm_bindgen::JsValue,
+) -> Result<u32, Error> {
+    Ok(42)
+}
+
+#[wasm_export]
+pub fn with_js_name_params(
+    #[wasm_export(js_name = "firstName")]
+    first_name: String,
+    #[wasm_export(js_name = "lastName")]
+    last_name: String,
+) -> Result<String, Error> {
+    Ok(format!("{} {}", first_name, last_name))
+}
+
+#[wasm_export(js_name = "processUserData")]
+pub fn with_mixed_js_attributes(
+    #[wasm_export(js_name = "userData", param_description = "the user's data object", unchecked_param_type = "UserData")]
+    user_data: wasm_bindgen::JsValue,
+    #[wasm_export(js_name = "processMode")]
+    process_mode: String,
+) -> Result<bool, Error> {
+    Ok(true)
+}
+
+#[wasm_export]
+pub fn snake_to_camel_conversion(
+    #[wasm_export(js_name = "userId")]
+    user_id: u32,
+    #[wasm_export(js_name = "isActive")]
+    is_active: bool,
+    #[wasm_export(js_name = "createdAt")]
+    created_at: String,
+) -> Result<String, Error> {
+    Ok(format!("User {} active: {} at {}", user_id, is_active, created_at))
+}

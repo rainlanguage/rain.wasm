@@ -58,4 +58,48 @@ impl TestStruct {
     ) -> Result<u32, Error> {
         Ok(index * 2)
     }
+
+    #[wasm_export]
+    pub fn with_unchecked_param(
+        &self,
+        #[wasm_export(unchecked_param_type = "CustomJSType")]
+        custom_param: wasm_bindgen::JsValue,
+    ) -> Result<String, Error> {
+        Ok("success".to_string())
+    }
+
+    #[wasm_export(js_name = "processElement")]
+    pub fn process_element(
+        &mut self,
+        #[wasm_export(unchecked_param_type = "HTMLElement", param_description = "the DOM element to process")]
+        element: wasm_bindgen::JsValue,
+        #[wasm_export(param_description = "processing options")]
+        options: String,
+    ) -> Result<bool, Error> {
+        Ok(true)
+    }
+
+    #[wasm_export]
+    pub fn with_js_name_params(
+        &self,
+        #[wasm_export(js_name = "primaryKey")]
+        primary_key: u32,
+        #[wasm_export(js_name = "displayName")]
+        display_name: String,
+    ) -> Result<String, Error> {
+        Ok(format!("Item {}: {}", primary_key, display_name))
+    }
+
+    #[wasm_export(js_name = "updateRecord")]
+    pub fn update_record(
+        &mut self,
+        #[wasm_export(js_name = "recordId", param_description = "unique identifier for the record")]
+        record_id: u32,
+        #[wasm_export(js_name = "newData", unchecked_param_type = "RecordData")]
+        new_data: wasm_bindgen::JsValue,
+        #[wasm_export(js_name = "saveOptions", param_description = "options for saving")]
+        save_options: String,
+    ) -> Result<bool, Error> {
+        Ok(true)
+    }
 }

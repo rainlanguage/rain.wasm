@@ -1,0 +1,5 @@
+error: duplicate `unchecked_param_type` attribute
+  --> tests/unhappy/dup_unchecked_param_type_attr.test.rs:10:59
+   |
+10 |         #[wasm_export(unchecked_param_type = "FirstType", unchecked_param_type = "SecondType")]
+   |                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

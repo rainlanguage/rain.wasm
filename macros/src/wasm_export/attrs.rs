@@ -19,6 +19,8 @@ impl AttrKeys {
     pub const PRESERVE_JS_CLASS: &'static str = "preserve_js_class";
     pub const UNCHECKED_RETURN_TYPE: &'static str = "unchecked_return_type";
     pub const RETURN_DESCRIPTION: &'static str = "return_description";
+    pub const UNCHECKED_PARAM_TYPE: &'static str = "unchecked_param_type";
+    pub const JS_NAME: &'static str = "js_name";
 }
 
 /// Struct that holds the parsed wasm_export attributes details
