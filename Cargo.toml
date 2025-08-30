@@ -4,7 +4,7 @@ description = "Provides utilities and helpers that make working with wasm-bindge
 edition = "2021"
 license = "LicenseRef-DCL-1.0"
 version = "0.0.10"
-homepage = "https://github.com/rainlanguage/rain.wasm"
+repository = "https://github.com/rainlanguage/rain.wasm"
 
 [dependencies]
 paste = { version = "1.0" }
