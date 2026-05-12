@@ -5,7 +5,6 @@ pub struct A {
     pub field2: Vec<u8>,
     pub field3: HashMap<String, u64>,
 }
-#[automatically_derived]
 #[repr(transparent)]
 pub struct JsA {
     obj: wasm_bindgen::JsValue,
@@ -17,8 +16,8 @@ const _: () = {
     use wasm_bindgen::convert::{OptionIntoWasmAbi, OptionFromWasmAbi};
     use wasm_bindgen::convert::{RefFromWasmAbi, LongRefFromWasmAbi};
     use wasm_bindgen::describe::WasmDescribe;
-    use wasm_bindgen::{JsValue, JsCast, JsObject};
-    use wasm_bindgen::__rt::core;
+    use wasm_bindgen::{JsValue, JsCast};
+    use wasm_bindgen::__rt::{core, marker::ErasableGeneric};
     #[automatically_derived]
     impl WasmDescribe for JsA {
         fn describe() {
@@ -98,13 +97,6 @@ const _: () = {
         }
     }
     #[automatically_derived]
-    impl From<JsValue> for JsA {
-        #[inline]
-        fn from(obj: JsValue) -> JsA {
-            JsA { obj: obj.into() }
-        }
-    }
-    #[automatically_derived]
     impl AsRef<JsValue> for JsA {
         #[inline]
         fn as_ref(&self) -> &JsValue {
@@ -116,6 +108,24 @@ const _: () = {
         #[inline]
         fn as_ref(&self) -> &JsA {
             self
+        }
+    }
+    #[automatically_derived]
+    impl wasm_bindgen::IntoJsGeneric for JsA
+    where
+        JsA: wasm_bindgen::JsGeneric,
+    {
+        type JsCanon = JsA;
+        #[inline]
+        fn to_js(self) -> JsA {
+            unsafe { core::mem::transmute_copy(&core::mem::ManuallyDrop::new(self)) }
+        }
+    }
+    #[automatically_derived]
+    impl From<JsValue> for JsA {
+        #[inline]
+        fn from(obj: JsValue) -> Self {
+            JsA { obj: obj.into() }
         }
     }
     #[automatically_derived]
@@ -146,19 +156,31 @@ const _: () = {
         }
         #[inline]
         fn unchecked_from_js_ref(val: &JsValue) -> &Self {
-            unsafe { &*(val as *const JsValue as *const JsA) }
+            unsafe { &*(val as *const JsValue as *const Self) }
         }
     }
-    impl JsObject for JsA {}
+    unsafe impl ErasableGeneric for JsA {
+        type Repr = JsValue;
+    }
 };
 #[automatically_derived]
-impl core::ops::Deref for JsA {
+impl wasm_bindgen::sys::Promising for JsA {
+    type Resolution = JsA;
+}
+#[automatically_derived]
+impl wasm_bindgen::__rt::core::ops::Deref for JsA {
     type Target = wasm_bindgen::JsValue;
     #[inline]
     fn deref(&self) -> &wasm_bindgen::JsValue {
         &self.obj
     }
 }
+#[automatically_derived]
+impl wasm_bindgen::convert::UpcastFrom<JsA> for wasm_bindgen::JsValue {}
+#[automatically_derived]
+impl wasm_bindgen::convert::UpcastFrom<JsA> for JsA {}
+#[automatically_derived]
+impl wasm_bindgen::convert::UpcastFrom<JsA> for wasm_bindgen::sys::JsOption<JsA> {}
 impl ::wasm_bindgen_utils::prelude::Tsify for A {
     type JsType = JsA;
     const DECL: &'static str = "export interface A {
