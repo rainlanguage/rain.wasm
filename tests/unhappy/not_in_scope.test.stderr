@@ -1,5 +1,37 @@
-error[E0412]: cannot find type `SomeType` in this scope
+error[E0425]: cannot find type `SomeType` in this scope
  --> tests/unhappy/not_in_scope.test.rs:4:19
   |
 4 | impl_wasm_traits!(SomeType);
   |                   ^^^^^^^^ not found in this scope
+
+error[E0282]: type annotations needed
+ --> tests/unhappy/not_in_scope.test.rs:4:1
+  |
+4 | impl_wasm_traits!(SomeType);
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^ cannot infer type
+  |
+  = note: this error originates in the macro `$crate::impl_main_wasm_traits` which comes from the expansion of the macro `impl_wasm_traits` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0282]: type annotations needed
+ --> tests/unhappy/not_in_scope.test.rs:4:1
+  |
+4 | impl_wasm_traits!(SomeType);
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^ cannot infer type
+  |
+  = note: this error originates in the macro `$crate::impl_main_wasm_traits` which comes from the expansion of the macro `impl_wasm_traits` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0282]: type annotations needed
+ --> tests/unhappy/not_in_scope.test.rs:4:1
+  |
+4 | impl_wasm_traits!(SomeType);
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^ cannot infer type
+  |
+  = note: this error originates in the macro `$crate::impl_main_wasm_traits` which comes from the expansion of the macro `impl_wasm_traits` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0282]: type annotations needed
+ --> tests/unhappy/not_in_scope.test.rs:4:1
+  |
+4 | impl_wasm_traits!(SomeType);
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^ cannot infer type
+  |
+  = note: this error originates in the macro `$crate::impl_complementary_wasm_traits` which comes from the expansion of the macro `impl_wasm_traits` (in Nightly builds, run with -Z macro-backtrace for more info)

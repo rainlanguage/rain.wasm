@@ -133,12 +133,13 @@ impl TestStruct {
         primary_key: u32,
         display_name: String,
     ) -> Result<String, Error> {
-        Ok({
-            let res = ::alloc::fmt::format(
-                format_args!("Item {0}: {1}", primary_key, display_name),
-            );
-            res
-        })
+        Ok(
+            ::alloc::__export::must_use({
+                ::alloc::fmt::format(
+                    format_args!("Item {0}: {1}", primary_key, display_name),
+                )
+            }),
+        )
     }
     pub fn update_record(
         &mut self,
