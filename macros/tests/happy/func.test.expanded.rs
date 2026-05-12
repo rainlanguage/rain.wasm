@@ -183,10 +183,11 @@ pub fn with_js_name_params(
     first_name: String,
     last_name: String,
 ) -> Result<String, Error> {
-    Ok({
-        let res = ::alloc::fmt::format(format_args!("{0} {1}", first_name, last_name));
-        res
-    })
+    Ok(
+        ::alloc::__export::must_use({
+            ::alloc::fmt::format(format_args!("{0} {1}", first_name, last_name))
+        }),
+    )
 }
 #[allow(non_snake_case)]
 #[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<String>")]
@@ -226,12 +227,15 @@ pub fn snake_to_camel_conversion(
     is_active: bool,
     created_at: String,
 ) -> Result<String, Error> {
-    Ok({
-        let res = ::alloc::fmt::format(
-            format_args!("User {0} active: {1} at {2}", user_id, is_active, created_at),
-        );
-        res
-    })
+    Ok(
+        ::alloc::__export::must_use({
+            ::alloc::fmt::format(
+                format_args!(
+                    "User {0} active: {1} at {2}", user_id, is_active, created_at,
+                ),
+            )
+        }),
+    )
 }
 #[allow(non_snake_case)]
 #[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<String>")]

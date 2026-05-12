@@ -128,14 +128,6 @@ const _: () = {
     #[automatically_derived]
     impl JsCast for JsA {
         fn instanceof(val: &JsValue) -> bool {
-            #[cfg(
-                not(
-                    all(
-                        target_arch = "wasm32",
-                        any(target_os = "unknown", target_os = "none")
-                    )
-                )
-            )]
             unsafe fn __wbg_instanceof_JsA_0e3b7e439dec8d02(_: u32) -> u32 {
                 {
                     ::core::panicking::panic_fmt(
