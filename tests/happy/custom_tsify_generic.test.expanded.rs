@@ -110,17 +110,6 @@ const _: () = {
         }
     }
     #[automatically_derived]
-    impl wasm_bindgen::IntoJsGeneric for JsA
-    where
-        JsA: wasm_bindgen::JsGeneric,
-    {
-        type JsCanon = JsA;
-        #[inline]
-        fn to_js(self) -> JsA {
-            unsafe { core::mem::transmute_copy(&core::mem::ManuallyDrop::new(self)) }
-        }
-    }
-    #[automatically_derived]
     impl From<JsValue> for JsA {
         #[inline]
         fn from(obj: JsValue) -> Self {
