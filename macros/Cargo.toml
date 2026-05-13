@@ -4,7 +4,7 @@ version = "0.0.6"
 edition = "2021"
 license = "LicenseRef-DCL-1.0"
 description = "Provides helper proc macros for wasm-bindgen-utils"
-homepage = "https://github.com/rainlanguage/rain.wasm"
+repository = "https://github.com/rainlanguage/rain.wasm"
 
 [lib]
 proc-macro = true
