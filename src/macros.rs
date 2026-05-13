@@ -167,15 +167,8 @@ macro_rules! impl_complementary_wasm_traits {
         }
         impl$(<$($generics),+>)? $crate::prelude::wasm_bindgen::convert::TryFromJsValue for $type_name$(<$($generics),+>)?
         $(where $($generics: serde::Serialize + for<'de> serde::Deserialize<'de>, )+ )? {
-            type Error = $crate::prelude::serde_wasm_bindgen::Error;
-            fn try_from_js_value(value: $crate::prelude::JsValue) -> Result<Self, Self::Error> {
-                Self::try_from_js_value(value)
-            }
-        }
-        impl$(<$($generics),+>)? $crate::prelude::wasm_bindgen::__rt::VectorIntoJsValue for $type_name$(<$($generics),+>)?
-        $(where $($generics: serde::Serialize + for<'de> serde::Deserialize<'de>, )+ )? {
-            fn vector_into_jsvalue(vector: Box<[Self]>) -> $crate::prelude::JsValue {
-                $crate::prelude::wasm_bindgen::__rt::js_value_vector_into_jsvalue(vector)
+            fn try_from_js_value_ref(value: &$crate::prelude::JsValue) -> Option<Self> {
+                Self::try_from_js_value(value.clone()).ok()
             }
         }
     };
