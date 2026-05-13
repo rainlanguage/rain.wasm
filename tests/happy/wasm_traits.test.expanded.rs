@@ -148,19 +148,9 @@ impl From<SomeType> for ::wasm_bindgen_utils::prelude::JsValue {
     }
 }
 impl ::wasm_bindgen_utils::prelude::wasm_bindgen::convert::TryFromJsValue for SomeType {
-    type Error = ::wasm_bindgen_utils::prelude::serde_wasm_bindgen::Error;
-    fn try_from_js_value(
-        value: ::wasm_bindgen_utils::prelude::JsValue,
-    ) -> Result<Self, Self::Error> {
-        Self::try_from_js_value(value)
-    }
-}
-impl ::wasm_bindgen_utils::prelude::wasm_bindgen::__rt::VectorIntoJsValue for SomeType {
-    fn vector_into_jsvalue(
-        vector: Box<[Self]>,
-    ) -> ::wasm_bindgen_utils::prelude::JsValue {
-        ::wasm_bindgen_utils::prelude::wasm_bindgen::__rt::js_value_vector_into_jsvalue(
-            vector,
-        )
+    fn try_from_js_value_ref(
+        value: &::wasm_bindgen_utils::prelude::JsValue,
+    ) -> Option<Self> {
+        Self::try_from_js_value(value.clone()).ok()
     }
 }
