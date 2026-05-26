@@ -3,7 +3,7 @@ name = "wasm-bindgen-utils"
 description = "Provides utilities and helpers that make working with wasm-bindgen easy"
 edition = "2021"
 license = "LicenseRef-DCL-1.0"
-version = "0.0.12-alpha.39"
+version = "0.1.0-alpha.0"
 repository = "https://github.com/rainlanguage/rain.wasm"
 
 [dependencies]
@@ -32,4 +32,9 @@ trybuild = "1.0"
 
 [workspace.dependencies.wasm-bindgen-utils-macros]
 path = "macros"
-version = "=0.0.7-alpha.39"
+# No exact "=" pin: the macro emits only #[wasm_bindgen] attrs and
+# external-crate paths, never wasm_bindgen_utils internals, so lockstep
+# versions aren't required. The workspace autopublish bumps both crates
+# together and rewrites this requirement in one `cargo release --workspace`
+# commit.
+version = "0.1.0-alpha.0"
