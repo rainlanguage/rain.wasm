@@ -1,0 +1,12 @@
+name: Package Release
+on:
+  push:
+    branches:
+      - main
+jobs:
+  release:
+    # dependency order: the macro crate first, then the lib that pins it.
+    uses: rainlanguage/rainix/.github/workflows/rainix-autopublish.yaml@main
+    with:
+      crates: wasm-bindgen-utils-macros wasm-bindgen-utils
+    secrets: inherit
