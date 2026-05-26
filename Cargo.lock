@@ -582,7 +582,7 @@ checksum = "1c29582b14d5bf030b02fa232b9b57faf2afc322d2c61964dd80bad02bf76207"
 
 [[package]]
 name = "wasm-bindgen-utils"
-version = "0.0.12-alpha.34"
+version = "0.0.12-alpha.35"
 dependencies = [
  "js-sys",
  "macrotest",
@@ -600,7 +600,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-utils-macros"
-version = "0.0.7-alpha.34"
+version = "0.0.7-alpha.35"
 dependencies = [
  "macrotest",
  "proc-macro2",
