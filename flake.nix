@@ -80,8 +80,8 @@
             packages.rainix-rs-artifacts
             cargo-expand
           ];
-          buildInputs = rainix.devShells.${system}.default.buildInputs;
-          nativeBuildInputs = rainix.devShells.${system}.default.nativeBuildInputs;
+          inherit (rainix.devShells.${system}.default) buildInputs;
+          inherit (rainix.devShells.${system}.default) nativeBuildInputs;
         };
       }
     );
