@@ -1,8 +1,11 @@
 # wasm-bindgen-utils
 
-Provides utilities, helpers and macros to easily build and customize `wasm_bindgen` bindings. For more details please read the doumentation of the items of this lib.
+Provides utilities, helpers and macros to easily build and customize
+`wasm_bindgen` bindings. For more details please read the doumentation of the
+items of this lib.
 
 Example:
+
 ```rust
 use wasm_bindgen_utils::{prelude::*, impl_wasm_traits, impl_custom_tsify, add_ts_content};
 
